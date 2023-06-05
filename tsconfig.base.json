@@ -1,0 +1,40 @@
+{
+    "compilerOptions": {
+        "lib": ["ES6"],
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "sourceRoot": "/",
+        "mapRoot": "/",
+        "resolveJsonModule": true,
+        "moduleResolution": "node",
+        "strict": true,
+        "alwaysStrict": true,
+        "allowJs": false,
+        "checkJs": false,
+        "module": "ES6",
+        "target": "ES6",
+        "esModuleInterop": true,
+        "removeComments": true,
+        "listFiles": false,
+        "extendedDiagnostics": true,
+        "exactOptionalPropertyTypes": true,
+        "diagnostics": true
+    },
+    "buildOptions": {
+        "verbose": true
+    },
+    "compileOnSave": true,
+    "ts-node": {
+        "compilerOptions": {
+            "module": "ES2022",
+            "target": "ES2022"
+        },
+        "esm": true,
+        "experimentalReplAwait": true,
+        "experimentalSpecifierResolution": "node",
+        "logError": true,
+        "pretty": true
+    },
+    "exclude": ["**/node_modules/**/*"]
+}

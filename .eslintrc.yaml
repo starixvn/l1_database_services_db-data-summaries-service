@@ -1,0 +1,13 @@
+parser: "@typescript-eslint/parser"
+plugins: ["@typescript-eslint"]
+extends:
+    - "google"
+    - "plugin:@typescript-eslint/eslint-recommended"
+    - "plugin:@typescript-eslint/recommended"
+    - "plugin:security/recommended"
+    - "prettier"
+rules:
+    no-throw-literal: "error"
+    require-jsdoc: "off"
+    valid-jsdoc: "off"
+ignorePatterns: ["/lib/**"]
