@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testExecutions version="1">
+  <file path="/repo/db-data-summaries-service/tests/unit-tests/loggers.test.ts">
+    <testCase name="Loggers Custom logger logInfo No format, manual = true, no extra" duration="4"/>
+    <testCase name="Loggers Custom logger logInfo No format, manual = true, with extra" duration="1"/>
+    <testCase name="Loggers Custom logger logInfo No format, manual = false, no extra" duration="2"/>
+    <testCase name="Loggers Custom logger logInfo No format, manual = false, with extra" duration="1"/>
+    <testCase name="Loggers Custom logger logInfo With format, manual = true, no extra" duration="1"/>
+    <testCase name="Loggers Custom logger logInfo With format, manual = true, with extra" duration="0"/>
+    <testCase name="Loggers Custom logger logInfo With format, manual = false, no extra" duration="1"/>
+    <testCase name="Loggers Custom logger logInfo With format, manual = false, with extra" duration="2"/>
+    <testCase name="Loggers Custom logger logWarning" duration="6"/>
+    <testCase name="Loggers Custom logger logError With extra" duration="9"/>
+    <testCase name="Loggers Custom logger logError No extra" duration="1"/>
+    <testCase name="Loggers Custom logger logError Skynex mask" duration="1"/>
+    <testCase name="Loggers Custom logger logError Sentry mask" duration="1"/>
+    <testCase name="Loggers Custom logger logError No mask" duration="1"/>
+    <testCase name="Loggers Custom logger logFatal With extra" duration="2"/>
+    <testCase name="Loggers Custom logger logFatal No extra" duration="1"/>
+    <testCase name="Loggers Custom logger logFatal Skynex mask" duration="1"/>
+    <testCase name="Loggers Custom logger logFatal Sentry mask" duration="1"/>
+    <testCase name="Loggers Custom logger logFatal No mask" duration="0"/>
+  </file>
+</testExecutions>
