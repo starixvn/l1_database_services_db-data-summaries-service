@@ -35,9 +35,9 @@ const roundPipelineFactory = (config: FromRoundSummaryConfig) => {
         },
         {
             $set: {
-                winloss: { $subtract: [payout, stake] },
-                minWinloss: { $subtract: [payout, stake] },
-                maxWinloss: { $subtract: [payout, stake] },
+                winloss: { $subtract: ["$payout", "$stake"] },
+                minWinloss: { $subtract: ["$payout", "$stake"] },
+                maxWinloss: { $subtract: ["$payout", "$stake"] },
             },
         },
         {
