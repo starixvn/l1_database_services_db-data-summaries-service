@@ -10,8 +10,8 @@ const appName = encodeURI("Data Summaries Service");
 const environment = "LOCAL-2";
 
 export const eventConfigs = {
-    roundSummary: 60_000,
-    timeSummary: 10 * 60_000,
+    SUMMARY_ROUND: 60_000,
+    SUMMARY_TIME: 10 * 60_000,
 };
 
 export const sentryOptions = {

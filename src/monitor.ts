@@ -62,6 +62,10 @@ export class Monitor {
         if (this.nodeEnv === "DEVELOPMENT") {
             await this.devMode();
         }
+
+        this.scheduler.emit("SUMMARY_ROUND");
+        this.scheduler.emit("SUMMARY_TIME");
+
         terminal.logInfo("The monitor has run!");
     }
 
@@ -74,9 +78,6 @@ export class Monitor {
 
         this.summaryTimeInitiator.on("HOURLY", this.devEventLogger.bind(this, this.summaryTimeInitiator.className, "HOURLY"));
         this.summaryTimeInitiator.on("DAILY", this.devEventLogger.bind(this, this.summaryTimeInitiator.className, "DAILY"));
-
-        this.scheduler.emit("SUMMARY_ROUND");
-        this.scheduler.emit("SUMMARY_TIME");
     }
     private devEventLogger(title: string, subject: string, ...args: unknown[]) {
         terminal.logDebug(args.map((arg) => stringify(arg)).join("\n"), { title, subject });
