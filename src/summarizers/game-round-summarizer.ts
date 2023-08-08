@@ -1,9 +1,9 @@
-import { MongoClient } from "mongodb";
-import { GameSummarizer } from "../modules/game-summarizer";
-import { GameSummaryInitializer, INIT_EVENT_NAMES } from "../modules/game-summary-initializer";
-import { FromRoundSummaryConfig } from "../types/summary-config";
+import { ChangeStreamNameSpace, Document, MongoClient } from "mongodb";
+import { SummaryGameExecutor } from "../modules/summary-game-executor";
+import { SummaryRoundInitiator } from "../modules/summary-round-initiator";
+import { RoundSummaryConfig } from "../types/summary-config";
 
-const roundPipelineFactory = (config: FromRoundSummaryConfig) => {
+const roundPipelineFactory = (config: RoundSummaryConfig): Document[] => {
     const {
         gameConfigs: { gameId },
         aliases: { local, playerId, settled, time },
@@ -40,24 +40,19 @@ const roundPipelineFactory = (config: FromRoundSummaryConfig) => {
                 maxWinloss: { $subtract: ["$payout", "$stake"] },
             },
         },
-        {
-            $merge: {
-                into: { db: "summary", coll: "round_summaries" },
-                on: ["gameId", "currency", "operatorId", "time", "roundId"],
-            },
-        },
+        { $set: { "__archive.inserted": true } },
     ];
 };
 
-export class GameRoundSummarizer extends GameSummarizer<FromRoundSummaryConfig> {
-    constructor(mongoClient: MongoClient) {
-        super(mongoClient, roundPipelineFactory);
+export class GameRoundSummarizer extends SummaryGameExecutor<RoundSummaryConfig> {
+    constructor(mongoClient: MongoClient, roundSummariesNamespace: ChangeStreamNameSpace) {
+        super(mongoClient, roundSummariesNamespace, roundPipelineFactory);
     }
 
-    subscribe(emitter: GameSummaryInitializer) {
-        return super.subscribe(emitter, INIT_EVENT_NAMES.ROUND);
+    subscribe(emitter: SummaryRoundInitiator) {
+        return super.subscribe(emitter, "ROUND");
     }
-    unsubscribe(emitter: GameSummaryInitializer) {
-        return super.unsubscribe(emitter, INIT_EVENT_NAMES.ROUND);
+    unsubscribe(emitter: SummaryRoundInitiator) {
+        return super.unsubscribe(emitter, "ROUND");
     }
 }

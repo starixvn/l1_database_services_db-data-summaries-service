@@ -1,9 +1,13 @@
 import { Scheduler, SchedulerConfigs } from "@ldb/scheduler";
 import { AwilixContainer, InjectionMode, ResolveOptions, asClass, asValue, createContainer } from "awilix";
 import { ChangeStreamNameSpace, MongoClient } from "mongodb";
-import { GameSummaryInitializer } from "./modules/game-summary-initializer";
+import { SummaryRoundInitiator } from "./modules/summary-round-initiator";
+import { SummaryTimeInitiator } from "./modules/summary-time-initiator";
 import { Monitor } from "./monitor";
+import { DailySummarizer } from "./summarizers/daily-summarizer";
 import { GameRoundSummarizer } from "./summarizers/game-round-summarizer";
+import { HourlySummarizer } from "./summarizers/hourly-summarizer";
+import { getCollection } from "./utils/mongodb-utils";
 
 export class ContainerRegistry {
     private readonly container: AwilixContainer;
@@ -36,9 +40,9 @@ export class ContainerRegistry {
         const mongoClient: MongoClient = this.container.resolve("mongoClient");
 
         for (const [name, namespace] of Object.entries(namespaces)) {
-            const { db, coll } = namespace;
             this.container.register({
-                [name]: asValue(mongoClient.db(db).collection(coll)),
+                [`${name}Namespace`]: asValue(namespace),
+                [`${name}Collection`]: asValue(getCollection(mongoClient, namespace)),
             });
         }
 
@@ -47,8 +51,11 @@ export class ContainerRegistry {
 
     private registerClasses() {
         this.container.register({
-            gameSummaryInitializer: asClass(GameSummaryInitializer).singleton(),
+            summaryRoundInitiator: asClass(SummaryRoundInitiator).singleton(),
             gameRoundSummarizer: asClass(GameRoundSummarizer).singleton(),
+            summaryTimeInitiator: asClass(SummaryTimeInitiator).singleton(),
+            hourlySummarizer: asClass(HourlySummarizer).singleton(),
+            dailySummarizer: asClass(DailySummarizer).singleton(),
             monitor: asClass(Monitor).singleton(),
         });
 

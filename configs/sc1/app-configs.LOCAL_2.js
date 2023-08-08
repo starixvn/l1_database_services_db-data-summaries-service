@@ -7,7 +7,7 @@ const db = {
 };
 const appName = encodeURI("Data Summaries Service");
 
-const environment = "LOCAL2";
+const environment = "LOCAL-2";
 
 export const eventConfigs = {
     roundSummary: 60_000,
@@ -34,4 +34,3 @@ export const hostingPort = 5000;
 export const database = {
     url: `mongodb://${db.credential}@${db.server}/admin?authSource=admin&appName=${appName}&replicaSet=${db.replSet}`,
 };
-

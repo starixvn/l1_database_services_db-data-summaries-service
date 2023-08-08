@@ -14,9 +14,14 @@ export const sentry = new SentryLogger(sentryOptions);
 
 export const skynex = new SkynexLogger(skynexOptions);
 
-export const terminal = new TerminalLogger();
+const { NODE_ENV: nodeEnv = "DEVELOPMENT" } = process.env;
+const defaultSeverityLevel = nodeEnv === "DEVELOPMENT" ? "debug" : "log";
+export const terminal = new TerminalLogger(defaultSeverityLevel);
 
 export const logger = {
+    logDebug(...args: Parameters<TerminalLogger["logDebug"]>) {
+        terminal.logDebug(...args);
+    },
     logInfo(component: string, message: string, manual: boolean, extra: Record<string, unknown> = {}) {
         terminal.logInfo("", { title: component, subject: message.replace(/`/g, "") });
 

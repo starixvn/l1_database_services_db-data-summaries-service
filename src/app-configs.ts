@@ -13,8 +13,8 @@ const appName = encodeURI("Data Summaries DevMode");
 const environment = "LOCAL-DEV";
 
 export const eventConfigs: SchedulerConfigs = {
-    roundSummary: 60_000,
-    timeSummary: 10 * 60_000,
+    SUMMARY_ROUND: 60_000,
+    SUMMARY_TIME: 10 * 60_000,
 };
 
 export const sentryOptions: NodeOptions = {
@@ -29,7 +29,7 @@ export const sentryOptions: NodeOptions = {
 export const skynexOptions: SkynexConfigs = {
     token: "0A40aOc7CtpzjbBSJu8KNWQRoXyjRvf9",
     environment,
-    conversationIds: { NotiChannel: -1001964283718 },
+    conversationIds: { NotiChannel: -1001911631568 },
 };
 
 export const hostingPort = 5000;

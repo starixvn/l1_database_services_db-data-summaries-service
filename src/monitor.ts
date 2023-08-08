@@ -1,22 +1,32 @@
 import { Scheduler } from "@ldb/scheduler";
-import { waitMs } from "@ldb/utils";
+import { stringify, waitMs } from "@ldb/utils";
 import { logger, terminal } from "./loggers";
-import { GameSummaryInitializer } from "./modules/game-summary-initializer";
+import { SummaryRoundInitiator } from "./modules/summary-round-initiator";
+import { SummaryTimeInitiator } from "./modules/summary-time-initiator";
+import { DailySummarizer } from "./summarizers/daily-summarizer";
 import { GameRoundSummarizer } from "./summarizers/game-round-summarizer";
+import { HourlySummarizer } from "./summarizers/hourly-summarizer";
 
 export class Monitor {
     constructor(
         private readonly nodeEnv: string,
         private readonly scheduler: Scheduler,
-        private readonly gameSummaryInitializer: GameSummaryInitializer,
-        private readonly gameRoundSummarizer: GameRoundSummarizer
+        private readonly summaryRoundInitiator: SummaryRoundInitiator,
+        private readonly gameRoundSummarizer: GameRoundSummarizer,
+        private readonly summaryTimeInitiator: SummaryTimeInitiator,
+        private readonly hourlySummarizer: HourlySummarizer,
+        private readonly dailySummarizer: DailySummarizer
     ) {
+        this.selfBound();
+
         this.nodeEnv = nodeEnv;
         this.scheduler = scheduler;
-        this.gameSummaryInitializer = gameSummaryInitializer;
+        this.summaryRoundInitiator = summaryRoundInitiator;
         this.gameRoundSummarizer = gameRoundSummarizer;
+        this.summaryTimeInitiator = summaryTimeInitiator;
+        this.hourlySummarizer = hourlySummarizer;
+        this.dailySummarizer = dailySummarizer;
 
-        this.selfBound();
         this.reportUnhandleErrors();
     }
 
@@ -43,15 +53,32 @@ export class Monitor {
     }
 
     async run() {
-        this.gameSummaryInitializer.subscribe(this.scheduler, "roundSummary");
-        this.gameRoundSummarizer.subscribe(this.gameSummaryInitializer);
-
-        this.scheduler.on("roundSummary", console.log.bind({}, new Date().toISOString(), "roundSummary"));
-        this.gameSummaryInitializer.on("ROUND", console.log.bind({}, new Date().toISOString(), "ROUND"));
+        this.summaryRoundInitiator.subscribe(this.scheduler);
+        this.gameRoundSummarizer.subscribe(this.summaryRoundInitiator);
+        this.summaryTimeInitiator.subscribe(this.scheduler);
+        this.hourlySummarizer.subscribe(this.summaryTimeInitiator);
+        this.dailySummarizer.subscribe(this.summaryTimeInitiator);
 
         if (this.nodeEnv === "DEVELOPMENT") {
-            this.scheduler.emit("roundSummary");
+            await this.devMode();
         }
         terminal.logInfo("The monitor has run!");
+    }
+
+    private async devMode() {
+        this.scheduler.on("SUMMARY_ROUND", this.devEventLogger.bind(this, this.scheduler.constructor.name, "SUMMARY_ROUND"));
+        this.scheduler.on("SUMMARY_TIME", this.devEventLogger.bind(this, this.scheduler.constructor.name, "SUMMARY_TIME"));
+
+        this.summaryRoundInitiator.on("BET", this.devEventLogger.bind(this, this.summaryRoundInitiator.className, "BET"));
+        this.summaryRoundInitiator.on("ROUND", this.devEventLogger.bind(this, this.summaryRoundInitiator.className, "ROUND"));
+
+        this.summaryTimeInitiator.on("HOURLY", this.devEventLogger.bind(this, this.summaryTimeInitiator.className, "HOURLY"));
+        this.summaryTimeInitiator.on("DAILY", this.devEventLogger.bind(this, this.summaryTimeInitiator.className, "DAILY"));
+
+        this.scheduler.emit("SUMMARY_ROUND");
+        this.scheduler.emit("SUMMARY_TIME");
+    }
+    private devEventLogger(title: string, subject: string, ...args: unknown[]) {
+        terminal.logDebug(args.map((arg) => stringify(arg)).join("\n"), { title, subject });
     }
 }

@@ -1,53 +1,67 @@
-import { Document } from "bson";
+import { ChangeStreamNameSpace, Document } from "mongodb";
 
-export type FromBetCollectionConfig = {
-    round: string;
-    bet: string;
-};
-export type FromRoundCollectionConfig = {
-    round: string;
-};
+export type GameConfigInfo = { gameId: number; name: string };
 
-export type AliasField = "local" | "foreign" | "time" | "playerId" | "settled";
-export type AliasConfig = Record<AliasField, string>;
+export type SchemaBetSummaryCollectionConfig = Record<"round" | "bet", string>;
+
+export type BetSummaryAliasConfig = Record<"local" | "foreign" | "time" | "playerId" | "settled", string>;
 
 export type CalculationField = "stake" | "payout" | "refund";
-export type CalculationConfigRaw = Record<CalculationField, string>;
+
+export type SchemaCalculationConfig = Record<CalculationField, string>;
+
+export type SchemaBetSummaryConfig = {
+    _brand: "bet";
+    category: string;
+    type: number;
+    gameConfigs: GameConfigInfo;
+    db: string;
+    coll: SchemaBetSummaryCollectionConfig;
+    aliases: BetSummaryAliasConfig;
+    calc: SchemaCalculationConfig;
+};
+
+export type SchemaRoundSummaryCollectionConfig = Record<"round", string>;
+
+export type RoundSummaryAliasConfig = Record<"local" | "time" | "playerId" | "settled", string>;
+
+export type SchemaRoundSummaryConfig = {
+    _brand: "round";
+    category: string;
+    type: number;
+    gameConfigs: GameConfigInfo;
+    db: string;
+    coll: SchemaRoundSummaryCollectionConfig;
+    aliases: RoundSummaryAliasConfig;
+    calc: SchemaCalculationConfig;
+};
+
+export type SchemaSummaryConfig = SchemaBetSummaryConfig | SchemaRoundSummaryConfig;
+
+export type BetSummaryCollectionConfig = { round: ChangeStreamNameSpace; bet: string };
+
 export type CalculationConfig = Record<CalculationField, string | Document | Document[]>;
 
-export type SummaryConfigBase<TCategory extends string, TType extends number | string> = {
-    category: TCategory;
-    type: TType;
-};
-
-export type GameSummaryConfigBase<TType extends number> = SummaryConfigBase<"games", TType> & {
-    gameConfigs: { gameId: number; name: string };
-    db: string;
-};
-export type FromBetSummaryConfigBase = GameSummaryConfigBase<0> & {
-    coll: FromBetCollectionConfig;
-    aliases: AliasConfig;
-};
-export type FromRoundSummaryConfigBase = GameSummaryConfigBase<2> & {
-    coll: FromRoundCollectionConfig;
-    aliases: Omit<AliasConfig, "foreign">;
-    jackpotContribution: number;
-};
-
-export type FromBetSummaryConfigRaw = FromBetSummaryConfigBase & {
-    calc: CalculationConfigRaw;
-};
-export type FromRoundSummaryConfigRaw = FromRoundSummaryConfigBase & {
-    calc: CalculationConfigRaw;
-};
-export type SummaryConfigRaw = FromBetSummaryConfigRaw | FromRoundSummaryConfigRaw;
-
-export type FromBetSummaryConfig = FromBetSummaryConfigBase & {
+export type BetSummaryConfig = {
+    _brand: "bet";
+    category: string;
+    type: number;
+    gameConfigs: GameConfigInfo;
+    coll: BetSummaryCollectionConfig;
+    aliases: BetSummaryAliasConfig;
     calc: CalculationConfig;
 };
-export type FromRoundSummaryConfig = FromRoundSummaryConfigBase & {
+
+export type RoundSummaryCollectionConfig = { round: ChangeStreamNameSpace };
+
+export type RoundSummaryConfig = {
+    _brand: "round";
+    category: string;
+    type: number;
+    gameConfigs: GameConfigInfo;
+    coll: RoundSummaryCollectionConfig;
+    aliases: RoundSummaryAliasConfig;
     calc: CalculationConfig;
 };
-export type SummaryConfig = FromBetSummaryConfig | FromRoundSummaryConfig;
 
-export type PipelineFactory<TConfig extends SummaryConfig> = (...args: [TConfig]) => Document[];
+export type SummaryConfig = BetSummaryConfig | RoundSummaryConfig;
