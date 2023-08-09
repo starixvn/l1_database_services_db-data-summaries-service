@@ -8,11 +8,7 @@ import { SummaryRoundInitiator, SummaryRoundInitiatorEvents } from "./summary-ro
 export class SummaryGameExecutor<TConfig extends SummaryConfig> {
     private readonly emitters: Set<SummaryRoundInitiator> = new Set();
 
-    constructor(
-        private readonly mongoClient: MongoClient,
-        private readonly roundSummariesNamespace: ChangeStreamNameSpace,
-        private readonly pipelineFactory: SummaryPipelineFactory<TConfig>
-    ) {
+    constructor(private readonly mongoClient: MongoClient, private readonly roundSummariesNamespace: ChangeStreamNameSpace, private readonly pipelineFactory: SummaryPipelineFactory<TConfig>) {
         this.selfBound();
 
         this.mongoClient = mongoClient;

@@ -13,9 +13,12 @@ const roundPipelineFactory = (config: RoundSummaryConfig): Document[] => {
     return [
         {
             $match: {
-                $expr: { $and: [{ $or: [{ $eq: ["__archive.summarized", false] }, { $eq: ["__archive.summarized", null] }] }, { $gte: [`$${playerId}`, 0] }, { $gt: [{ $toInt: `$${settled}` }, 0] }] },
+                $or: [{ "__archive.summarized": false }, { "__archive.summarized": null }],
+                [playerId]: { $gte: 0 },
+                $expr: { $gt: [{ $toInt: `$${settled}` }, 0] },
             },
         },
+
         {
             $project: {
                 _id: 0,
@@ -32,8 +35,14 @@ const roundPipelineFactory = (config: RoundSummaryConfig): Document[] => {
                 players: [`$${playerId}`],
             },
         },
-        { $set: { winloss: { $subtract: ["$payout", "$stake"] }, minWinloss: { $subtract: ["$payout", "$stake"] }, maxWinloss: { $subtract: ["$payout", "$stake"] } } },
-        { $set: { "__archive.inserted": true } },
+        {
+            $set: {
+                winloss: { $subtract: ["$payout", "$stake"] },
+                minWinloss: { $subtract: ["$payout", "$stake"] },
+                maxWinloss: { $subtract: ["$payout", "$stake"] },
+                "__archive.inserted": true,
+            },
+        },
     ];
 };
 
