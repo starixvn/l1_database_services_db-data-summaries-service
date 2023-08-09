@@ -55,10 +55,7 @@ export class SummaryTimeExecutor {
     }
 
     protected async runSummary() {
-        const aggregateOptions: AggregateOptions = {
-            retryWrites: true,
-            allowDiskUse: true,
-        };
+        const aggregateOptions: AggregateOptions = { allowDiskUse: true };
 
         const pipeline = this.getPipeline(this.roundSummariesNamespace.coll);
         const mergeStage: Document = {

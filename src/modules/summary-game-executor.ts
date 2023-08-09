@@ -56,10 +56,7 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
     }
 
     protected async runSummary(summaryConfig: TConfig) {
-        const aggregateOptions: AggregateOptions = {
-            retryWrites: true,
-            allowDiskUse: true,
-        };
+        const aggregateOptions: AggregateOptions = { allowDiskUse: true };
 
         const {
             coll: { round },
