@@ -58,12 +58,22 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
         const aggregateOptions: AggregateOptions = { allowDiskUse: true };
 
         const {
+            gameConfigs: { name },
             coll: { round },
         } = summaryConfig;
 
         const roundCollection = this.getCollection(round);
         const pipeline = this.getPipeline(summaryConfig);
 
+        const filterStage: Document = {
+            $match: {
+                gameId: { $ne: null },
+                currency: { $ne: null },
+                operatorId: { $ne: null },
+                time: { $ne: null },
+                roundId: { $ne: null },
+            },
+        };
         const mergeStage: Document = {
             $merge: {
                 into: this.roundSummariesNamespace,
@@ -72,13 +82,15 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
                 whenNotMatched: "insert",
             },
         };
+
+        pipeline.push(filterStage);
         pipeline.push(mergeStage);
 
         try {
             await roundCollection.aggregate(pipeline, aggregateOptions).tryNext();
             await this.updateFlag(summaryConfig);
         } catch (error: unknown) {
-            this.handleError(error, "executeMergeAggregate");
+            this.handleError(error, `executeMergeAggregate - ${name}`);
         }
     }
 
