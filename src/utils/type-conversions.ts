@@ -21,6 +21,7 @@ export function parseSummaryConfig(summaryConfig: SchemaSummaryConfig): SummaryC
             gameConfigs,
             db,
             coll: { round, bet },
+            filter: filterRaw = "{}",
             calc: { stake, payout, refund },
             ...restConfig
         } = summaryConfig;
@@ -32,12 +33,15 @@ export function parseSummaryConfig(summaryConfig: SchemaSummaryConfig): SummaryC
         const coll: BetSummaryCollectionConfig = { round: { db, coll: roundCollectionName }, bet: betCollectionName };
         const calc: CalculationConfig = { stake: EJSON.parse(stake), payout: EJSON.parse(payout), refund: EJSON.parse(refund) };
 
-        return { gameConfigs, coll, calc, ...restConfig, _brand: "bet" };
+        const filter = EJSON.parse(filterRaw);
+
+        return { gameConfigs, coll, filter, calc, ...restConfig, _brand: "bet" };
     } else if (isRoundSummaryConfig(summaryConfig)) {
         const {
             gameConfigs,
             db,
             coll: { round },
+            filter: filterRaw = "{}",
             calc: { stake, payout, refund },
             ...restConfig
         } = summaryConfig;
@@ -48,7 +52,9 @@ export function parseSummaryConfig(summaryConfig: SchemaSummaryConfig): SummaryC
         const coll: RoundSummaryCollectionConfig = { round: { db, coll: roundCollectionName } };
         const calc: CalculationConfig = { stake: EJSON.parse(stake), payout: EJSON.parse(payout), refund: EJSON.parse(refund) };
 
-        return { gameConfigs, coll, calc, ...restConfig, _brand: "round" };
+        const filter = EJSON.parse(filterRaw);
+
+        return { gameConfigs, coll, filter, calc, ...restConfig, _brand: "round" };
     } else {
         throw new Error("Invalid config");
     }

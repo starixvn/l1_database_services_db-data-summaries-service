@@ -17,6 +17,7 @@ export type SchemaBetSummaryConfig = {
     gameConfigs: GameConfigInfo;
     db: string;
     coll: SchemaBetSummaryCollectionConfig;
+    filter?: string;
     aliases: BetSummaryAliasConfig;
     calc: SchemaCalculationConfig;
 };
@@ -32,6 +33,7 @@ export type SchemaRoundSummaryConfig = {
     gameConfigs: GameConfigInfo;
     db: string;
     coll: SchemaRoundSummaryCollectionConfig;
+    filter?: string;
     aliases: RoundSummaryAliasConfig;
     calc: SchemaCalculationConfig;
 };
@@ -48,6 +50,7 @@ export type BetSummaryConfig = {
     type: number;
     gameConfigs: GameConfigInfo;
     coll: BetSummaryCollectionConfig;
+    filter: Document;
     aliases: BetSummaryAliasConfig;
     calc: CalculationConfig;
 };
@@ -60,6 +63,7 @@ export type RoundSummaryConfig = {
     type: number;
     gameConfigs: GameConfigInfo;
     coll: RoundSummaryCollectionConfig;
+    filter: Document;
     aliases: RoundSummaryAliasConfig;
     calc: CalculationConfig;
 };

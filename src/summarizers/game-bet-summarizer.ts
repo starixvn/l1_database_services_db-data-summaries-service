@@ -7,12 +7,13 @@ const roundPipelineFactory = (config: BetSummaryConfig): Document[] => {
     const {
         gameConfigs: { gameId },
         coll: { bet: betCollectionName },
+        filter,
         aliases: { local, foreign, playerId, settled, time },
         calc: { payout, refund, stake },
     } = config;
 
     return [
-        { $match: { $or: [{ "__archive.summarized": false }, { "__archive.summarized": null }] } },
+        { $match: { $and: [{ $or: [{ "__archive.summarized": false }, { "__archive.summarized": null }] }, filter] } },
         { $project: { _id: 0, id: `$${local}`, time: `$${time}` } },
         {
             $lookup: {

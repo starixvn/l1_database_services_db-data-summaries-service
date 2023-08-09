@@ -7,18 +7,12 @@ const roundPipelineFactory = (config: RoundSummaryConfig): Document[] => {
     const {
         gameConfigs: { gameId },
         aliases: { local, playerId, settled, time },
+        filter,
         calc: { payout, refund, stake },
     } = config;
 
     return [
-        {
-            $match: {
-                $or: [{ "__archive.summarized": false }, { "__archive.summarized": null }],
-                [playerId]: { $gte: 0 },
-                $expr: { $gt: [{ $toInt: `$${settled}` }, 0] },
-            },
-        },
-
+        { $match: { $and: [{ $or: [{ "__archive.summarized": false }, { "__archive.summarized": null }] }, { [playerId]: { $gte: 0 }, $expr: { $gt: [{ $toInt: `$${settled}` }, 0] } }, filter] } },
         {
             $project: {
                 _id: 0,
