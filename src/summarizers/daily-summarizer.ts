@@ -3,24 +3,12 @@ import { SummaryTimeExecutor } from "../modules/summary-time-executor";
 import { SummaryTimeInitiator } from "../modules/summary-time-initiator";
 
 const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
-    { $match: { "__archive.hourly": { $ne: true } } },
+    { $match: { $or: [{ "__archive.daily": false }, { "__archive.daily": null }] } },
     {
         $group: {
             _id: {
-                time: {
-                    $dateFromParts: {
-                        year: { $year: "$time" },
-                        month: { $month: "$time" },
-                        day: { $dayOfMonth: "$time" },
-                    },
-                },
-                timeTo: {
-                    $dateFromParts: {
-                        year: { $year: "$time" },
-                        month: { $month: "$time" },
-                        day: { $add: [{ $dayOfMonth: "$time" }, 1] },
-                    },
-                },
+                time: { $dateFromParts: { year: { $year: "$time" }, month: { $month: "$time" }, day: { $dayOfMonth: "$time" } } },
+                timeTo: { $dateFromParts: { year: { $year: "$time" }, month: { $month: "$time" }, day: { $add: [{ $dayOfMonth: "$time" }, 1] } } },
                 currency: "$currency",
                 gameId: "$gameId",
                 operatorId: "$operatorId",
@@ -30,13 +18,7 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
     {
         $lookup: {
             from: sourceCollectionName,
-            let: {
-                time: "$_id.time",
-                timeTo: "$_id.timeTo",
-                currency: "$_id.currency",
-                gameId: "$_id.gameId",
-                operatorId: "$_id.operatorId",
-            },
+            let: { time: "$_id.time", timeTo: "$_id.timeTo", currency: "$_id.currency", gameId: "$_id.gameId", operatorId: "$_id.operatorId" },
             pipeline: [
                 {
                     $match: {
@@ -87,6 +69,7 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             maxWinloss: { $max: { $add: ["$lastWinloss", "$round.maxWinloss"] } },
             minWinloss: { $min: { $add: ["$lastWinloss", "$round.minWinloss"] } },
             refund: { $sum: "$round.refund" },
+            players: { $addToSet: "$round.players" },
         },
     },
     {
@@ -107,6 +90,8 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             maxWinloss: "$maxWinloss",
             minWinloss: "$minWinloss",
             refund: "$refund",
+            players: { $size: { $reduce: { input: "$players", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } } },
+            playerIds: { $reduce: { input: "$players", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } },
         },
     },
 ];

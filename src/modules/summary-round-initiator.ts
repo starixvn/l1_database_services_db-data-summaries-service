@@ -34,6 +34,11 @@ export class SummaryRoundInitiator extends TypedEventEmitter<SummaryRoundInitiat
 
         for await (const summaryConfigRaw of summaryConfigCursor) {
             const summaryConfig = parseSummaryConfig(summaryConfigRaw);
+            const {
+                gameConfigs: { gameId, name },
+            } = summaryConfig;
+
+            logger.logInfo(`${this.className}`, `#${gameId} - ${name}`, true);
 
             if (isBetSummaryConfig(summaryConfig)) {
                 this.emit("BET", summaryConfig);

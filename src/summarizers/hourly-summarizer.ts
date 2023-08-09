@@ -3,26 +3,12 @@ import { SummaryTimeExecutor } from "../modules/summary-time-executor";
 import { SummaryTimeInitiator } from "../modules/summary-time-initiator";
 
 const hourlyPipelineFactory = (sourceCollectionName: string): Document[] => [
-    { $match: { "__archive.hourly": { $ne: true } } },
+    { $match: { $or: [{ "__archive.hourly": false }, { "__archive.hourly": null }] } },
     {
         $group: {
             _id: {
-                time: {
-                    $dateFromParts: {
-                        year: { $year: "$time" },
-                        month: { $month: "$time" },
-                        day: { $dayOfMonth: "$time" },
-                        hour: { $hour: "$time" },
-                    },
-                },
-                timeTo: {
-                    $dateFromParts: {
-                        year: { $year: "$time" },
-                        month: { $month: "$time" },
-                        day: { $dayOfMonth: "$time" },
-                        hour: { $add: [{ $hour: "$time" }, 1] },
-                    },
-                },
+                time: { $dateFromParts: { year: { $year: "$time" }, month: { $month: "$time" }, day: { $dayOfMonth: "$time" }, hour: { $hour: "$time" } } },
+                timeTo: { $dateFromParts: { year: { $year: "$time" }, month: { $month: "$time" }, day: { $dayOfMonth: "$time" }, hour: { $add: [{ $hour: "$time" }, 1] } } },
                 currency: "$currency",
                 gameId: "$gameId",
                 operatorId: "$operatorId",
@@ -89,8 +75,10 @@ const hourlyPipelineFactory = (sourceCollectionName: string): Document[] => [
             maxWinloss: { $max: { $add: ["$lastWinloss", "$round.maxWinloss"] } },
             minWinloss: { $min: { $add: ["$lastWinloss", "$round.minWinloss"] } },
             refund: { $sum: "$round.refund" },
+            players: { $addToSet: "$round.players" },
         },
     },
+    { $set: { playerIds: { $reduce: { input: "$players", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } } } },
     {
         $project: {
             _id: 0,
@@ -109,6 +97,8 @@ const hourlyPipelineFactory = (sourceCollectionName: string): Document[] => [
             maxWinloss: "$maxWinloss",
             minWinloss: "$minWinloss",
             refund: "$refund",
+            playerIds: "$playerIds",
+            players: { $size: "$playerIds" },
         },
     },
 ];
