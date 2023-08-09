@@ -4,6 +4,7 @@ import { logger, terminal } from "./loggers";
 import { SummaryRoundInitiator } from "./modules/summary-round-initiator";
 import { SummaryTimeInitiator } from "./modules/summary-time-initiator";
 import { DailySummarizer } from "./summarizers/daily-summarizer";
+import { GameBetSummarizer } from "./summarizers/game-bet-summarizer";
 import { GameRoundSummarizer } from "./summarizers/game-round-summarizer";
 import { HourlySummarizer } from "./summarizers/hourly-summarizer";
 
@@ -13,6 +14,7 @@ export class Monitor {
         private readonly scheduler: Scheduler,
         private readonly summaryRoundInitiator: SummaryRoundInitiator,
         private readonly gameRoundSummarizer: GameRoundSummarizer,
+        private readonly gameBetSummarizer: GameBetSummarizer,
         private readonly summaryTimeInitiator: SummaryTimeInitiator,
         private readonly hourlySummarizer: HourlySummarizer,
         private readonly dailySummarizer: DailySummarizer
@@ -23,6 +25,7 @@ export class Monitor {
         this.scheduler = scheduler;
         this.summaryRoundInitiator = summaryRoundInitiator;
         this.gameRoundSummarizer = gameRoundSummarizer;
+        this.gameBetSummarizer = gameBetSummarizer;
         this.summaryTimeInitiator = summaryTimeInitiator;
         this.hourlySummarizer = hourlySummarizer;
         this.dailySummarizer = dailySummarizer;
@@ -55,6 +58,8 @@ export class Monitor {
     async run() {
         this.summaryRoundInitiator.subscribe(this.scheduler);
         this.gameRoundSummarizer.subscribe(this.summaryRoundInitiator);
+        this.gameBetSummarizer.subscribe(this.summaryRoundInitiator);
+
         this.summaryTimeInitiator.subscribe(this.scheduler);
         this.hourlySummarizer.subscribe(this.summaryTimeInitiator);
         this.dailySummarizer.subscribe(this.summaryTimeInitiator);
@@ -73,11 +78,11 @@ export class Monitor {
         this.scheduler.on("SUMMARY_ROUND", this.devEventLogger.bind(this, this.scheduler.constructor.name, "SUMMARY_ROUND"));
         this.scheduler.on("SUMMARY_TIME", this.devEventLogger.bind(this, this.scheduler.constructor.name, "SUMMARY_TIME"));
 
-        this.summaryRoundInitiator.on("BET", this.devEventLogger.bind(this, this.summaryRoundInitiator.className, "BET"));
-        this.summaryRoundInitiator.on("ROUND", this.devEventLogger.bind(this, this.summaryRoundInitiator.className, "ROUND"));
+        // this.summaryRoundInitiator.on("BET", this.devEventLogger.bind(this, this.summaryRoundInitiator.className, "BET"));
+        // this.summaryRoundInitiator.on("ROUND", this.devEventLogger.bind(this, this.summaryRoundInitiator.className, "ROUND"));
 
-        this.summaryTimeInitiator.on("HOURLY", this.devEventLogger.bind(this, this.summaryTimeInitiator.className, "HOURLY"));
-        this.summaryTimeInitiator.on("DAILY", this.devEventLogger.bind(this, this.summaryTimeInitiator.className, "DAILY"));
+        // this.summaryTimeInitiator.on("HOURLY", this.devEventLogger.bind(this, this.summaryTimeInitiator.className, "HOURLY"));
+        // this.summaryTimeInitiator.on("DAILY", this.devEventLogger.bind(this, this.summaryTimeInitiator.className, "DAILY"));
     }
     private devEventLogger(title: string, subject: string, ...args: unknown[]) {
         terminal.logDebug(args.map((arg) => stringify(arg)).join("\n"), { title, subject });

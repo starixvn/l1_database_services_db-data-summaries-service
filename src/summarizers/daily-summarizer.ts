@@ -1,4 +1,4 @@
-import { ChangeStreamNameSpace, Collection, Document } from "mongodb";
+import { ChangeStreamNameSpace, Document, MongoClient } from "mongodb";
 import { SummaryTimeExecutor } from "../modules/summary-time-executor";
 import { SummaryTimeInitiator } from "../modules/summary-time-initiator";
 
@@ -45,13 +45,7 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             lastWinloss: {
                 $sum: {
                     $map: {
-                        input: {
-                            $filter: {
-                                input: "$rounds",
-                                as: "r",
-                                cond: { $lt: ["$$r.roundId", "$round.roundId"] },
-                            },
-                        },
+                        input: { $filter: { input: "$rounds", as: "r", cond: { $lt: ["$$r.roundId", "$round.roundId"] } } },
                         as: "rr",
                         in: "$$rr.winloss",
                     },
@@ -72,6 +66,7 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             players: { $addToSet: "$round.players" },
         },
     },
+    { $set: { playerIds: { $reduce: { input: "$players", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } } } },
     {
         $project: {
             _id: 0,
@@ -97,8 +92,8 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
 ];
 
 export class DailySummarizer extends SummaryTimeExecutor {
-    constructor(roundSummariesCollection: Collection, dailySummariesNamespace: ChangeStreamNameSpace) {
-        super(roundSummariesCollection, dailySummariesNamespace, dailyPipelineFactory);
+    constructor(mongoClient: MongoClient, roundSummariesNamespace: ChangeStreamNameSpace, dailySummariesNamespace: ChangeStreamNameSpace) {
+        super(mongoClient, roundSummariesNamespace, dailySummariesNamespace, dailyPipelineFactory);
     }
 
     subscribe(emitter: SummaryTimeInitiator) {

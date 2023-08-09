@@ -8,6 +8,7 @@ import { DailySummarizer } from "./summarizers/daily-summarizer";
 import { GameRoundSummarizer } from "./summarizers/game-round-summarizer";
 import { HourlySummarizer } from "./summarizers/hourly-summarizer";
 import { getCollection } from "./utils/mongodb-utils";
+import { GameBetSummarizer } from "./summarizers/game-bet-summarizer";
 
 export class ContainerRegistry {
     private readonly container: AwilixContainer;
@@ -53,6 +54,7 @@ export class ContainerRegistry {
         this.container.register({
             summaryRoundInitiator: asClass(SummaryRoundInitiator).singleton(),
             gameRoundSummarizer: asClass(GameRoundSummarizer).singleton(),
+            gameBetSummarizer: asClass(GameBetSummarizer).singleton(),
             summaryTimeInitiator: asClass(SummaryTimeInitiator).singleton(),
             hourlySummarizer: asClass(HourlySummarizer).singleton(),
             dailySummarizer: asClass(DailySummarizer).singleton(),

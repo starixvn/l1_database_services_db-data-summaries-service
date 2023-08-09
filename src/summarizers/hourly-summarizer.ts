@@ -1,4 +1,4 @@
-import { ChangeStreamNameSpace, Collection, Document } from "mongodb";
+import { ChangeStreamNameSpace, Document, MongoClient } from "mongodb";
 import { SummaryTimeExecutor } from "../modules/summary-time-executor";
 import { SummaryTimeInitiator } from "../modules/summary-time-initiator";
 
@@ -18,13 +18,7 @@ const hourlyPipelineFactory = (sourceCollectionName: string): Document[] => [
     {
         $lookup: {
             from: sourceCollectionName,
-            let: {
-                time: "$_id.time",
-                timeTo: "$_id.timeTo",
-                currency: "$_id.currency",
-                gameId: "$_id.gameId",
-                operatorId: "$_id.operatorId",
-            },
+            let: { time: "$_id.time", timeTo: "$_id.timeTo", currency: "$_id.currency", gameId: "$_id.gameId", operatorId: "$_id.operatorId" },
             pipeline: [
                 {
                     $match: {
@@ -51,13 +45,7 @@ const hourlyPipelineFactory = (sourceCollectionName: string): Document[] => [
             lastWinloss: {
                 $sum: {
                     $map: {
-                        input: {
-                            $filter: {
-                                input: "$rounds",
-                                as: "r",
-                                cond: { $lt: ["$$r.roundId", "$round.roundId"] },
-                            },
-                        },
+                        input: { $filter: { input: "$rounds", as: "r", cond: { $lt: ["$$r.roundId", "$round.roundId"] } } },
                         as: "rr",
                         in: "$$rr.winloss",
                     },
@@ -104,8 +92,8 @@ const hourlyPipelineFactory = (sourceCollectionName: string): Document[] => [
 ];
 
 export class HourlySummarizer extends SummaryTimeExecutor {
-    constructor(roundSummariesCollection: Collection, hourlySummariesNamespace: ChangeStreamNameSpace) {
-        super(roundSummariesCollection, hourlySummariesNamespace, hourlyPipelineFactory);
+    constructor(mongoClient: MongoClient, roundSummariesNamespace: ChangeStreamNameSpace, hourlySummariesNamespace: ChangeStreamNameSpace) {
+        super(mongoClient, roundSummariesNamespace, hourlySummariesNamespace, hourlyPipelineFactory);
     }
 
     subscribe(emitter: SummaryTimeInitiator) {
