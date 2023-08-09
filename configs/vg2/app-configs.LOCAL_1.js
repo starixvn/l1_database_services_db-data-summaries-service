@@ -15,7 +15,7 @@ export const eventConfigs = {
 };
 
 export const sentryOptions = {
-    dsn: "https://098a0c6ad1d74e8eb39ec7df895e59e0@sentry.lumigame.com/76",
+    dsn: "https://be2c83ae1b01424ab32f27411f22f8c5@sentry.lumigame.com/77",
     environment,
     initialScope: {
         tags: { service: "data-summaries" },
@@ -26,7 +26,7 @@ export const sentryOptions = {
 export const skynexOptions = {
     token: "0A40aOc7CtpzjbBSJu8KNWQRoXyjRvf9",
     environment,
-    conversationIds: { NotiChannel: -1001964283718 },
+    conversationIds: { NotiChannel: -1001604444158 },
 };
 
 export const hostingPort = 5000;
