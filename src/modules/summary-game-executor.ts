@@ -36,7 +36,6 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
     }
 
     protected async execute(summaryConfig: TConfig) {
-        const startTimer = Date.now();
         const { gameConfigs } = summaryConfig;
         const { gameId, name } = gameConfigs;
 
@@ -51,7 +50,7 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
             await this.runSummary(summaryConfig);
         } finally {
             this.summaryFlag.set(flag, false);
-            logger.logDebug(`${Date.now() - startTimer} ms`, { title: this.className, subject: flag });
+            logger.logDebug("", { title: this.className, subject: flag });
         }
     }
 
@@ -85,7 +84,7 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
 
     protected async updateFlag(summaryConfig: TConfig) {
         const {
-            gameConfigs: { gameId },
+            gameConfigs: { gameId, name },
             coll: { round },
             aliases: { local },
         } = summaryConfig;
@@ -96,30 +95,25 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
         let roundFlagUpdates: AnyBulkWriteOperation[] = [];
         let summaryFlagRemoves: AnyBulkWriteOperation[] = [];
 
-        const insertedCursor = roundSummariesCollection.aggregate([{ $match: { "__archive.inserted": true, gameId } }, { $project: { _id: 1, roundId: 1, time: 1 } }]);
+        const insertedCursor = roundSummariesCollection.find({ "__archive.inserted": true, gameId }, { projection: { _id: 1, roundId: 1, time: 1, tickets: 1 } });
         const warmingTime = new Date(Date.now() - 3_600_000);
 
         for await (const document of insertedCursor) {
-            const { _id, roundId, time } = document;
+            const { _id, roundId, time, tickets } = document;
 
-            time <= warmingTime &&
-                roundFlagUpdates.push({
-                    updateMany: {
-                        filter: { [local]: roundId },
-                        update: { $set: { "__archive.summarized": true } },
-                    },
-                });
+            if (time <= warmingTime) {
+                roundFlagUpdates.push({ updateMany: { filter: { [local]: roundId }, update: { $set: { "__archive.summarized": true } } } });
+            }
 
-            summaryFlagRemoves.push({
-                updateOne: {
-                    filter: { _id },
-                    update: { $unset: { "__archive.inserted": 1 } },
-                },
-            });
+            if (tickets > 0) {
+                summaryFlagRemoves.push({ updateOne: { filter: { _id }, update: { $unset: { "__archive.inserted": 1 } } } });
+            } else {
+                summaryFlagRemoves.push({ deleteOne: { filter: { _id } } });
+            }
 
             if (roundFlagUpdates.length >= BULK_WRITE_THRESHOLD || summaryFlagRemoves.length >= BULK_WRITE_THRESHOLD) {
-                await this.executeBulkWrite(roundCollection, roundFlagUpdates);
-                await this.executeBulkWrite(roundSummariesCollection, summaryFlagRemoves);
+                await this.executeBulkWrite(roundCollection, roundFlagUpdates, name);
+                await this.executeBulkWrite(roundSummariesCollection, summaryFlagRemoves, name);
 
                 roundFlagUpdates = [];
                 summaryFlagRemoves = [];
@@ -127,23 +121,26 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
         }
 
         if (roundFlagUpdates.length > 0) {
-            await this.executeBulkWrite(roundCollection, roundFlagUpdates);
+            await this.executeBulkWrite(roundCollection, roundFlagUpdates, name);
         }
 
         if (summaryFlagRemoves.length > 0) {
-            await this.executeBulkWrite(roundSummariesCollection, summaryFlagRemoves);
+            await this.executeBulkWrite(roundSummariesCollection, summaryFlagRemoves, name);
         }
     }
 
-    private async executeBulkWrite(collection: Collection, bulkWriteOperations: AnyBulkWriteOperation[]) {
+    private async executeBulkWrite(collection: Collection, bulkWriteOperations: AnyBulkWriteOperation[], info: string) {
         try {
             const bulkWriteOptions: BulkWriteOptions = { ordered: false };
             const bulkWriteResult = await collection.bulkWrite(bulkWriteOperations, bulkWriteOptions);
-            const { ok, matchedCount, upsertedCount, modifiedCount } = bulkWriteResult;
-            logger.logDebug({ ok, matchedCount, upsertedCount, modifiedCount }, { title: `${this.className}.bulkWrite`, subject: collection.namespace });
+            const { ok, matchedCount, insertedCount, upsertedCount, modifiedCount, deletedCount } = bulkWriteResult;
+            logger.logDebug(`[${ok ? "OK" : "NG"}]  #-${matchedCount}  I-${insertedCount}  U-${upsertedCount}  M-${modifiedCount}  D-${deletedCount}  E-${bulkWriteResult.getWriteErrorCount()}`, {
+                title: `${this.className}.bulkWrite - ${info}`,
+                subject: collection.namespace,
+            });
         } catch (error: unknown) {
             const { dbName, collectionName } = collection;
-            this.handleError(error, `${dbName}.${collectionName}.bulkWrite`);
+            this.handleError(error, `${dbName}.${collectionName}.bulkWrite - ${info}`);
         }
     }
 

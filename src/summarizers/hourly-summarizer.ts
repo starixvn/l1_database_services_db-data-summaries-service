@@ -37,22 +37,7 @@ const hourlyPipelineFactory = (sourceCollectionName: string): Document[] => [
             as: "round",
         },
     },
-    { $set: { rounds: "$round" } },
     { $unwind: "$round" },
-    {
-        $set: {
-            rounds: "$$REMOVE",
-            lastWinloss: {
-                $sum: {
-                    $map: {
-                        input: { $filter: { input: "$rounds", as: "r", cond: { $lt: ["$$r.roundId", "$round.roundId"] } } },
-                        as: "rr",
-                        in: "$$rr.winloss",
-                    },
-                },
-            },
-        },
-    },
     {
         $group: {
             _id: "$_id",
@@ -60,8 +45,6 @@ const hourlyPipelineFactory = (sourceCollectionName: string): Document[] => [
             stake: { $sum: "$round.stake" },
             payout: { $sum: "$round.payout" },
             winloss: { $sum: "$round.winloss" },
-            maxWinloss: { $max: { $add: ["$lastWinloss", "$round.maxWinloss"] } },
-            minWinloss: { $min: { $add: ["$lastWinloss", "$round.minWinloss"] } },
             refund: { $sum: "$round.refund" },
             players: { $addToSet: "$round.players" },
         },
@@ -82,18 +65,17 @@ const hourlyPipelineFactory = (sourceCollectionName: string): Document[] => [
             stake: "$stake",
             payout: "$payout",
             winloss: "$winloss",
-            maxWinloss: "$maxWinloss",
-            minWinloss: "$minWinloss",
             refund: "$refund",
             playerIds: "$playerIds",
             players: { $size: "$playerIds" },
+            "__archive.inserted": { $literal: true },
         },
     },
 ];
 
 export class HourlySummarizer extends SummaryTimeExecutor {
     constructor(mongoClient: MongoClient, roundSummariesNamespace: ChangeStreamNameSpace, hourlySummariesNamespace: ChangeStreamNameSpace) {
-        super(mongoClient, roundSummariesNamespace, hourlySummariesNamespace, hourlyPipelineFactory);
+        super(mongoClient, roundSummariesNamespace, hourlySummariesNamespace, hourlyPipelineFactory, "hourly");
     }
 
     subscribe(emitter: SummaryTimeInitiator) {

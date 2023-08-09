@@ -37,22 +37,7 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             as: "round",
         },
     },
-    { $set: { rounds: "$round" } },
     { $unwind: "$round" },
-    {
-        $set: {
-            rounds: "$$REMOVE",
-            lastWinloss: {
-                $sum: {
-                    $map: {
-                        input: { $filter: { input: "$rounds", as: "r", cond: { $lt: ["$$r.roundId", "$round.roundId"] } } },
-                        as: "rr",
-                        in: "$$rr.winloss",
-                    },
-                },
-            },
-        },
-    },
     {
         $group: {
             _id: "$_id",
@@ -60,8 +45,6 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             stake: { $sum: "$round.stake" },
             payout: { $sum: "$round.payout" },
             winloss: { $sum: "$round.winloss" },
-            maxWinloss: { $max: { $add: ["$lastWinloss", "$round.maxWinloss"] } },
-            minWinloss: { $min: { $add: ["$lastWinloss", "$round.minWinloss"] } },
             refund: { $sum: "$round.refund" },
             players: { $addToSet: "$round.players" },
         },
@@ -82,18 +65,17 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             stake: "$stake",
             payout: "$payout",
             winloss: "$winloss",
-            maxWinloss: "$maxWinloss",
-            minWinloss: "$minWinloss",
             refund: "$refund",
             players: { $size: { $reduce: { input: "$players", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } } },
             playerIds: { $reduce: { input: "$players", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } },
+            "__archive.inserted": { $literal: true },
         },
     },
 ];
 
 export class DailySummarizer extends SummaryTimeExecutor {
     constructor(mongoClient: MongoClient, roundSummariesNamespace: ChangeStreamNameSpace, dailySummariesNamespace: ChangeStreamNameSpace) {
-        super(mongoClient, roundSummariesNamespace, dailySummariesNamespace, dailyPipelineFactory);
+        super(mongoClient, roundSummariesNamespace, dailySummariesNamespace, dailyPipelineFactory, "daily");
     }
 
     subscribe(emitter: SummaryTimeInitiator) {

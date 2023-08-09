@@ -32,9 +32,7 @@ const roundPipelineFactory = (config: RoundSummaryConfig): Document[] => {
         {
             $set: {
                 winloss: { $subtract: ["$payout", "$stake"] },
-                minWinloss: { $subtract: ["$payout", "$stake"] },
-                maxWinloss: { $subtract: ["$payout", "$stake"] },
-                "__archive.inserted": true,
+                "__archive.inserted": { $literal: true },
             },
         },
     ];

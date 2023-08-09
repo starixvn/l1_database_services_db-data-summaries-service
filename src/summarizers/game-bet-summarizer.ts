@@ -15,45 +15,29 @@ const roundPipelineFactory = (config: BetSummaryConfig): Document[] => {
     return [
         { $match: { $and: [{ $or: [{ "__archive.summarized": false }, { "__archive.summarized": null }] }, filter] } },
         { $project: { _id: 0, id: `$${local}`, time: `$${time}` } },
-        {
-            $lookup: {
-                from: betCollectionName,
-                let: { local: "$id" },
-                pipeline: [
-                    { $match: { $expr: { $and: [{ $eq: [`$${foreign}`, "$$local"] }, { $gte: [`$${playerId}`, 0] }, { $gt: [{ $toInt: `$${settled}` }, 0] }] } } },
-                    { $project: { _id: 1, currency: 1, operatorId: 1, playerId: 1, stake, payout, refund } },
-                    { $set: { winloss: { $subtract: ["$payout", "$stake"] } } },
-                ],
-                as: "bets",
-            },
-        },
-        { $set: { bet: "$bets" } },
-        { $unwind: "$bet" },
+        { $lookup: { from: betCollectionName, localField: "id", foreignField: foreign, as: "bets" } },
         {
             $set: {
-                bets: "$$REMOVE",
-                runningWinloss: {
-                    $sum: {
-                        $map: {
-                            input: { $filter: { input: "$bets", as: "b", cond: { $lte: ["$$b._id", "$bet._id"] } } },
-                            as: "bb",
-                            in: "$$bb.winloss",
-                        },
+                bets: {
+                    $filter: {
+                        input: "$bets",
+                        as: "b",
+                        cond: { $and: [{ $gte: [`$$b.${playerId}`, 0] }, { $gt: [{ $toInt: `$$b.${settled}` }, 0] }] },
                     },
                 },
             },
         },
+        { $unwind: { path: "$bets", preserveNullAndEmptyArrays: true } },
+        { $set: { "bets.roundId": "$id", "bets.time": "$time", id: "$$REMOVE", time: "$$REMOVE" } },
+        { $replaceWith: "$bets" },
         {
             $group: {
-                _id: { id: "$id", time: "$time", currency: "$bet.currency", operatorId: "$bet.operatorId" },
-                tickets: { $sum: 1 },
-                stake: { $sum: "$bet.stake" },
-                payout: { $sum: "$bet.payout" },
-                winloss: { $sum: "$bet.winloss" },
-                minWinloss: { $min: "$runningWinloss" },
-                maxWinloss: { $max: "$runningWinloss" },
-                refund: { $sum: "$bet.refund" },
-                players: { $addToSet: "$bet.playerId" },
+                _id: { roundId: "$roundId", time: "$time", currency: { $ifNull: ["$currency", ""] }, operatorId: { $ifNull: ["$operatorId", ""] } },
+                tickets: { $sum: { $toInt: { $gte: ["$playerId", 0] } } },
+                stake: { $sum: stake },
+                payout: { $sum: payout },
+                refund: { $sum: refund },
+                players: { $addToSet: "$playerId" },
             },
         },
         {
@@ -64,16 +48,14 @@ const roundPipelineFactory = (config: BetSummaryConfig): Document[] => {
                 gameId: { $literal: gameId },
                 operatorId: "$_id.operatorId",
                 partnerId: "$_id.operatorId",
-                roundId: "$_id.id",
+                roundId: "$_id.roundId",
                 tickets: "$tickets",
                 stake: "$stake",
                 payout: "$payout",
                 refund: "$refund",
-                winloss: "$winloss",
-                minWinloss: "$minWinloss",
-                maxWinloss: "$maxWinloss",
+                winloss: { $subtract: ["$payout", "$stake"] },
                 players: "$players",
-                "__archive.inserted": true,
+                "__archive.inserted": { $literal: true },
             },
         },
     ];
