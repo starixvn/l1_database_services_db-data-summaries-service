@@ -1,7 +1,7 @@
 import { AggregateOptions, AnyBulkWriteOperation, BulkWriteOptions, ChangeStreamNameSpace, Collection, Document, MongoClient } from "mongodb";
 import { logger } from "../loggers";
 import { SummaryPipelineFactory } from "../types/pipeline-factory";
-import { GameConfigInfo, SummaryConfig } from "../types/summary-config";
+import { SummaryConfig } from "../types/summary-config";
 import { getCollection } from "../utils/mongodb-utils";
 import { SummaryRoundInitiator, SummaryRoundInitiatorEvents } from "./summary-round-initiator";
 
@@ -9,7 +9,7 @@ const BULK_WRITE_THRESHOLD = 1_000;
 
 export class SummaryGameExecutor<TConfig extends SummaryConfig> {
     private readonly emitters: Set<SummaryRoundInitiator> = new Set();
-    private summaryFlag: Map<GameConfigInfo, boolean> = new Map();
+    private summaryFlag: Map<string, boolean> = new Map();
 
     constructor(private readonly mongoClient: MongoClient, private readonly roundSummariesNamespace: ChangeStreamNameSpace, private readonly pipelineFactory: SummaryPipelineFactory<TConfig>) {
         this.selfBound();
@@ -40,17 +40,18 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
         const { gameConfigs } = summaryConfig;
         const { gameId, name } = gameConfigs;
 
-        if (this.summaryFlag.get(gameConfigs)) {
+        const flag = `#${gameId}.${name}`;
+        if (this.summaryFlag.get(flag)) {
             logger.logWarning(this.className, `Summary process #${gameId} - ${name} is running!`);
             return;
         }
 
         try {
-            this.summaryFlag.set(gameConfigs, true);
+            this.summaryFlag.set(flag, true);
             await this.runSummary(summaryConfig);
         } finally {
-            this.summaryFlag.set(gameConfigs, false);
-            logger.logDebug(`${Date.now() - startTimer} ms`, { title: this.className, subject: `#${gameId}.${name}` });
+            this.summaryFlag.set(flag, false);
+            logger.logDebug(`${Date.now() - startTimer} ms`, { title: this.className, subject: flag });
         }
     }
 
@@ -98,17 +99,19 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
         let roundFlagUpdates: AnyBulkWriteOperation[] = [];
         let summaryFlagRemoves: AnyBulkWriteOperation[] = [];
 
-        const insertedCursor = roundSummariesCollection.aggregate([{ $match: { "__archive.inserted": true, gameId } }, { $project: { _id: 1, roundId: 1 } }]);
+        const insertedCursor = roundSummariesCollection.aggregate([{ $match: { "__archive.inserted": true, gameId } }, { $project: { _id: 1, roundId: 1, time: 1 } }]);
+        const warmingTime = new Date(Date.now() - 3_600_000);
 
         for await (const document of insertedCursor) {
-            const { _id, roundId } = document;
+            const { _id, roundId, time } = document;
 
-            roundFlagUpdates.push({
-                updateMany: {
-                    filter: { [local]: roundId },
-                    update: { $set: { "__archive.summarized": true } },
-                },
-            });
+            time <= warmingTime &&
+                roundFlagUpdates.push({
+                    updateMany: {
+                        filter: { [local]: roundId },
+                        update: { $set: { "__archive.summarized": true } },
+                    },
+                });
 
             summaryFlagRemoves.push({
                 updateOne: {
