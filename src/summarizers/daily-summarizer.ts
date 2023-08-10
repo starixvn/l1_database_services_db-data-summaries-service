@@ -3,7 +3,7 @@ import { SummaryTimeExecutor } from "../modules/summary-time-executor";
 import { SummaryTimeInitiator } from "../modules/summary-time-initiator";
 
 const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
-    { $match: { $or: [{ "__archive.daily": false }, { "__archive.daily": null }] } },
+    { $match: { "__archive.do_daily": true } },
     {
         $group: {
             _id: {
@@ -68,14 +68,13 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             refund: "$refund",
             players: { $size: "$playerIds" },
             playerIds: "$playerIds",
-            "__archive.inserted": { $literal: true },
         },
     },
 ];
 
 export class DailySummarizer extends SummaryTimeExecutor {
     constructor(mongoClient: MongoClient, roundSummariesNamespace: ChangeStreamNameSpace, dailySummariesNamespace: ChangeStreamNameSpace) {
-        super(mongoClient, roundSummariesNamespace, dailySummariesNamespace, dailyPipelineFactory, "daily");
+        super(mongoClient, roundSummariesNamespace, dailySummariesNamespace, dailyPipelineFactory, { type: "daily", hours: 24 });
     }
 
     subscribe(emitter: SummaryTimeInitiator) {

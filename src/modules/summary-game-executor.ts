@@ -1,11 +1,9 @@
-import { AggregateOptions, AnyBulkWriteOperation, BulkWriteOptions, ChangeStreamNameSpace, Collection, Document, MongoClient } from "mongodb";
+import { AggregateOptions, ChangeStreamNameSpace, Document, MongoClient } from "mongodb";
 import { logger } from "../loggers";
 import { SummaryPipelineFactory } from "../types/pipeline-factory";
 import { SummaryConfig } from "../types/summary-config";
 import { getCollection } from "../utils/mongodb-utils";
 import { SummaryRoundInitiator, SummaryRoundInitiatorEvents } from "./summary-round-initiator";
-
-const BULK_WRITE_THRESHOLD = 1_000;
 
 export class SummaryGameExecutor<TConfig extends SummaryConfig> {
     private readonly emitters: Set<SummaryRoundInitiator> = new Set();
@@ -84,9 +82,15 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
         };
 
         pipeline.push(filterStage);
+
+        if (summaryConfig.gameConfigs.gameId === 99) {
+            logger.logDebug(await roundCollection.aggregate(pipeline, aggregateOptions).toArray());
+        }
+
         pipeline.push(mergeStage);
 
         try {
+            await this.markFlag(summaryConfig);
             await roundCollection.aggregate(pipeline, aggregateOptions).tryNext();
             await this.updateFlag(summaryConfig);
         } catch (error: unknown) {
@@ -94,68 +98,43 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
         }
     }
 
-    protected async updateFlag(summaryConfig: TConfig) {
+    protected async markFlag(summaryConfig: SummaryConfig) {
         const {
-            gameConfigs: { gameId, name },
             coll: { round },
-            calc: { roundId: roundIdCalc },
         } = summaryConfig;
+        const flag = `__archive.summarized`;
+        const doFlag = `__archive.do_summary`;
 
-        const roundSummariesCollection = this.getCollection(this.roundSummariesNamespace);
-        const roundCollection = this.getCollection(round);
+        const gameRoundCollection = this.getCollection(round);
+        const updateResult = await gameRoundCollection.updateMany({ $or: [{ [flag]: false }, { [flag]: null }] }, { $set: { [doFlag]: true } });
 
-        let gameRoundFlagUpdates: AnyBulkWriteOperation[] = [];
-        let summaryFlagRemoves: AnyBulkWriteOperation[] = [];
+        const { matchedCount, upsertedCount, modifiedCount } = updateResult;
+        logger.logDebug(`#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}`, {
+            title: `${this.className}.markFlag`,
+            subject: gameRoundCollection.namespace,
+        });
+    }
 
-        const insertedCursor = roundSummariesCollection.find({ "__archive.inserted": true, gameId }, { projection: { _id: 1, roundId: 1, time: 1, players: 1 } });
+    protected async updateFlag(summaryConfig: SummaryConfig) {
+        const {
+            coll: { round },
+            aliases: { time },
+        } = summaryConfig;
+        const flag = `__archive.summarized`;
+        const doFlag = `__archive.do_summary`;
+
         const warmingTime = new Date(Date.now() - 3_600_000);
+        const gameRoundCollection = this.getCollection(round);
+        const updateResult = await gameRoundCollection.updateMany({ [doFlag]: true, [time]: { $lt: warmingTime } }, { $set: { [flag]: true } });
+        const removeResult = await gameRoundCollection.updateMany({ [doFlag]: true }, { $unset: { [doFlag]: 1 } });
 
-        for await (const document of insertedCursor) {
-            const { _id, roundId, time, players } = document;
-
-            if (time <= warmingTime) {
-                gameRoundFlagUpdates.push({ updateMany: { filter: { $expr: { $eq: [roundIdCalc, roundId] } }, update: { $set: { "__archive.summarized": true } } } });
-            }
-
-            if (players instanceof Array && players.length > 0) {
-                summaryFlagRemoves.push({ updateOne: { filter: { _id }, update: { $unset: { "__archive.inserted": 1 } } } });
-            } else {
-                summaryFlagRemoves.push({ deleteOne: { filter: { _id } } });
-            }
-
-            if (gameRoundFlagUpdates.length >= BULK_WRITE_THRESHOLD || summaryFlagRemoves.length >= BULK_WRITE_THRESHOLD) {
-                await this.executeBulkWrite(roundCollection, gameRoundFlagUpdates, name);
-                await this.executeBulkWrite(roundSummariesCollection, summaryFlagRemoves, name);
-
-                gameRoundFlagUpdates = [];
-                summaryFlagRemoves = [];
-            }
-        }
-
-        if (gameRoundFlagUpdates.length > 0) {
-            await this.executeBulkWrite(roundCollection, gameRoundFlagUpdates, name);
-        }
-
-        if (summaryFlagRemoves.length > 0) {
-            await this.executeBulkWrite(roundSummariesCollection, summaryFlagRemoves, name);
-        }
+        const { matchedCount: matchedUpdated, modifiedCount: modifiedUpdated } = updateResult;
+        const { matchedCount: matchedRemoved, modifiedCount: modifiedRemoved } = removeResult;
+        logger.logDebug(`+++ #-${matchedUpdated} M-${modifiedUpdated} +++    --- #-${matchedRemoved} M-${modifiedRemoved} ---`, {
+            title: `${this.className}.updateFlag`,
+            subject: gameRoundCollection.namespace,
+        });
     }
-
-    private async executeBulkWrite(collection: Collection, bulkWriteOperations: AnyBulkWriteOperation[], info: string) {
-        try {
-            const bulkWriteOptions: BulkWriteOptions = { ordered: false };
-            const bulkWriteResult = await collection.bulkWrite(bulkWriteOperations, bulkWriteOptions);
-            const { ok, matchedCount, insertedCount, upsertedCount, modifiedCount, deletedCount } = bulkWriteResult;
-            logger.logDebug(`[${ok ? "OK" : "NG"}]  #-${matchedCount}  I-${insertedCount}  U-${upsertedCount}  M-${modifiedCount}  D-${deletedCount}  E-${bulkWriteResult.getWriteErrorCount()}`, {
-                title: `${this.className}.bulkWrite - ${info}`,
-                subject: collection.namespace,
-            });
-        } catch (error: unknown) {
-            const { dbName, collectionName } = collection;
-            this.handleError(error, `${dbName}.${collectionName}.bulkWrite - ${info}`);
-        }
-    }
-
     protected handleError(error: unknown, component: string): void {
         logger.logError(`${this.className}.${component}`, error);
     }

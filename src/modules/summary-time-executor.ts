@@ -1,10 +1,8 @@
-import { AggregateOptions, AnyBulkWriteOperation, BulkWriteOptions, ChangeStreamNameSpace, Collection, Document, MongoClient } from "mongodb";
+import { AggregateOptions, ChangeStreamNameSpace, Document, MongoClient } from "mongodb";
 import { logger } from "../loggers";
 import { TimePipelineFactory } from "../types/pipeline-factory";
 import { getCollection } from "../utils/mongodb-utils";
 import { SummaryTimeInitiator, SummaryTimeInitiatorEvents } from "./summary-time-initiator";
-
-const BULK_WRITE_THRESHOLD = 1_000;
 
 export class SummaryTimeExecutor {
     private readonly emitters: Set<SummaryTimeInitiator> = new Set();
@@ -15,7 +13,7 @@ export class SummaryTimeExecutor {
         private readonly roundSummariesNamespace: ChangeStreamNameSpace,
         private readonly targetNamespace: ChangeStreamNameSpace,
         private readonly pipelineFactory: TimePipelineFactory,
-        private readonly type: string
+        private readonly configs: { type: string; hours: number }
     ) {
         this.selfBound();
 
@@ -23,7 +21,7 @@ export class SummaryTimeExecutor {
         this.roundSummariesNamespace = roundSummariesNamespace;
         this.targetNamespace = targetNamespace;
         this.pipelineFactory = pipelineFactory;
-        this.type = type;
+        this.configs = configs;
     }
 
     get className(): string {
@@ -52,8 +50,9 @@ export class SummaryTimeExecutor {
             this.summaryFlag = true;
             await this.runSummary();
         } finally {
+            const { type } = this.configs;
             this.summaryFlag = false;
-            logger.logDebug("", { title: this.className, subject: this.type });
+            logger.logDebug("", { title: this.className, subject: type });
         }
     }
 
@@ -72,6 +71,7 @@ export class SummaryTimeExecutor {
         pipeline.push(mergeStage);
 
         try {
+            await this.markFlag();
             await this.getCollection(this.roundSummariesNamespace).aggregate(pipeline, aggregateOptions).tryNext();
             await this.updateFlag();
         } catch (error: unknown) {
@@ -79,57 +79,33 @@ export class SummaryTimeExecutor {
         }
     }
 
-    protected async updateFlag() {
-        const targetCollection = this.getCollection(this.targetNamespace);
+    protected async markFlag() {
+        const { type } = this.configs;
+        const flag = `__archive.${type}`;
+        const doFlag = `__archive.do_${type}`;
+
         const roundSummariesCollection = this.getCollection(this.roundSummariesNamespace);
+        const updateResult = await roundSummariesCollection.updateMany({ $or: [{ [flag]: false }, { [flag]: null }], "__archive.inserted": { $ne: true } }, { $set: { [doFlag]: true } });
 
-        let roundFlagUpdates: AnyBulkWriteOperation[] = [];
-        let targetFlagRemoves: AnyBulkWriteOperation[] = [];
-
-        const insertedCursor = targetCollection.find({ "__archive.inserted": true }, { projection: { _id: 1, gameId: 1, time: 1, currency: 1, operatorId: 1 } });
-
-        for await (const document of insertedCursor) {
-            const { _id, gameId, time, currency, operatorId } = document;
-            const toTime = new Date(time.valueOf() + 24 * 3_600_000);
-
-            if (isNaN(toTime.valueOf())) {
-                continue;
-            }
-
-            roundFlagUpdates.push({ updateMany: { filter: { gameId, time: { $gte: time, $lt: toTime }, currency, operatorId }, update: { $set: { [`__archive.${this.type}`]: true } } } });
-            targetFlagRemoves.push({ updateOne: { filter: { _id }, update: { $unset: { "__archive.inserted": 1 } } } });
-
-            if (roundFlagUpdates.length >= BULK_WRITE_THRESHOLD || targetFlagRemoves.length >= BULK_WRITE_THRESHOLD) {
-                await this.executeBulkWrite(roundSummariesCollection, roundFlagUpdates, this.type);
-                await this.executeBulkWrite(targetCollection, targetFlagRemoves, this.type);
-
-                roundFlagUpdates = [];
-                targetFlagRemoves = [];
-            }
-        }
-
-        if (roundFlagUpdates.length > 0) {
-            await this.executeBulkWrite(roundSummariesCollection, roundFlagUpdates, this.type);
-        }
-
-        if (targetFlagRemoves.length > 0) {
-            await this.executeBulkWrite(targetCollection, targetFlagRemoves, this.type);
-        }
+        const { matchedCount, upsertedCount, modifiedCount } = updateResult;
+        logger.logDebug(`#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}`, {
+            title: `${this.className}.markFlag - ${type}`,
+            subject: roundSummariesCollection.namespace,
+        });
     }
 
-    private async executeBulkWrite(collection: Collection, bulkWriteOperations: AnyBulkWriteOperation[], info: string) {
-        try {
-            const bulkWriteOptions: BulkWriteOptions = { ordered: false };
-            const bulkWriteResult = await collection.bulkWrite(bulkWriteOperations, bulkWriteOptions);
-            const { ok, matchedCount, insertedCount, upsertedCount, modifiedCount, deletedCount } = bulkWriteResult;
-            logger.logDebug(`[${ok ? "OK" : "NG"}]  #-${matchedCount}  I-${insertedCount}  U-${upsertedCount}  M-${modifiedCount}  D-${deletedCount}  E-${bulkWriteResult.getWriteErrorCount()}`, {
-                title: `${this.className}.bulkWrite - ${info}`,
-                subject: collection.namespace,
-            });
-        } catch (error: unknown) {
-            const { dbName, collectionName } = collection;
-            this.handleError(error, `${dbName}.${collectionName}.bulkWrite - ${info}`);
-        }
+    protected async updateFlag() {
+        const { type } = this.configs;
+        const flag = `__archive.${type}`;
+        const doFlag = `__archive.do_${type}`;
+
+        const roundSummariesCollection = this.getCollection(this.roundSummariesNamespace);
+        const updateResult = await roundSummariesCollection.updateMany({ [doFlag]: true }, [{ $set: { [doFlag]: "$$REMOVE", [flag]: true } }]);
+        const { matchedCount, upsertedCount, modifiedCount } = updateResult;
+        logger.logDebug(`#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}`, {
+            title: `${this.className}.updateFlag - ${type}`,
+            subject: roundSummariesCollection.namespace,
+        });
     }
 
     protected handleError(error: unknown, component: string): void {

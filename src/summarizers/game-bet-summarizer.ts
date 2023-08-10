@@ -13,7 +13,7 @@ const roundPipelineFactory = (config: BetSummaryConfig): Document[] => {
     } = config;
 
     return [
-        { $match: { $and: [{ $or: [{ "__archive.summarized": false }, { "__archive.summarized": null }] }, filter] } },
+        { $match: { $and: [{ "__archive.do_summary": true }, filter] } },
         { $project: { _id: 0, id: roundId, time: `$${time}` } },
         { $lookup: { from: betCollectionName, localField: "id", foreignField: foreign, as: "bets" } },
         {
@@ -27,7 +27,7 @@ const roundPipelineFactory = (config: BetSummaryConfig): Document[] => {
                 },
             },
         },
-        { $unwind: { path: "$bets", preserveNullAndEmptyArrays: true } },
+        { $unwind: { path: "$bets", preserveNullAndEmptyArrays: false } },
         { $set: { "bets.roundId": "$id", "bets.time": "$time", id: "$$REMOVE", time: "$$REMOVE" } },
         { $replaceWith: "$bets" },
         {
@@ -56,7 +56,6 @@ const roundPipelineFactory = (config: BetSummaryConfig): Document[] => {
                 winloss: { $subtract: ["$payout", "$stake"] },
                 players: { $size: "$playerIds" },
                 playerIds: "$playerIds",
-                "__archive.inserted": { $literal: true },
             },
         },
     ];

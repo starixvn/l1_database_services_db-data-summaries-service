@@ -3,7 +3,7 @@ import { SummaryTimeExecutor } from "../modules/summary-time-executor";
 import { SummaryTimeInitiator } from "../modules/summary-time-initiator";
 
 const hourlyPipelineFactory = (sourceCollectionName: string): Document[] => [
-    { $match: { $or: [{ "__archive.hourly": false }, { "__archive.hourly": null }] } },
+    { $match: { "__archive.do_hourly": true } },
     {
         $group: {
             _id: {
@@ -68,14 +68,13 @@ const hourlyPipelineFactory = (sourceCollectionName: string): Document[] => [
             refund: "$refund",
             players: { $size: "$playerIds" },
             playerIds: "$playerIds",
-            "__archive.inserted": { $literal: true },
         },
     },
 ];
 
 export class HourlySummarizer extends SummaryTimeExecutor {
     constructor(mongoClient: MongoClient, roundSummariesNamespace: ChangeStreamNameSpace, hourlySummariesNamespace: ChangeStreamNameSpace) {
-        super(mongoClient, roundSummariesNamespace, hourlySummariesNamespace, hourlyPipelineFactory, "hourly");
+        super(mongoClient, roundSummariesNamespace, hourlySummariesNamespace, hourlyPipelineFactory, { type: "hourly", hours: 1 });
     }
 
     subscribe(emitter: SummaryTimeInitiator) {
