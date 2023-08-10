@@ -26,7 +26,8 @@ const roundPipelineFactory = (config: RoundSummaryConfig): Document[] => {
                 stake,
                 payout,
                 refund,
-                players: [`$${playerId}`],
+                players: { $literal: 1 },
+                playerIds: [`$${playerId}`],
             },
         },
         {

@@ -37,7 +37,7 @@ const roundPipelineFactory = (config: BetSummaryConfig): Document[] => {
                 stake: { $sum: stake },
                 payout: { $sum: payout },
                 refund: { $sum: refund },
-                players: { $addToSet: "$playerId" },
+                playerIds: { $addToSet: "$playerId" },
             },
         },
         {
@@ -54,7 +54,8 @@ const roundPipelineFactory = (config: BetSummaryConfig): Document[] => {
                 payout: "$payout",
                 refund: "$refund",
                 winloss: { $subtract: ["$payout", "$stake"] },
-                players: "$players",
+                players: { $size: "$playerIds" },
+                playerIds: "$playerIds",
                 "__archive.inserted": { $literal: true },
             },
         },

@@ -46,10 +46,10 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             payout: { $sum: "$round.payout" },
             winloss: { $sum: "$round.winloss" },
             refund: { $sum: "$round.refund" },
-            players: { $addToSet: "$round.players" },
+            playerIds: { $addToSet: "$round.playerIds" },
         },
     },
-    { $set: { playerIds: { $reduce: { input: "$players", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } } } },
+    { $set: { playerIds: { $reduce: { input: "$playerIds", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } } } },
     {
         $project: {
             _id: 0,
@@ -66,8 +66,8 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             payout: "$payout",
             winloss: "$winloss",
             refund: "$refund",
-            players: { $size: { $reduce: { input: "$players", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } } },
-            playerIds: { $reduce: { input: "$players", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } },
+            players: { $size: "$playerIds" },
+            playerIds: "$playerIds",
             "__archive.inserted": { $literal: true },
         },
     },
