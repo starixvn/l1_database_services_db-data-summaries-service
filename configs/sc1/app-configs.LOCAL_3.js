@@ -11,7 +11,7 @@ const environment = "LOCAL-3";
 
 export const eventConfigs = {
     SUMMARY_ROUND: 60_000,
-    SUMMARY_TIME: 10 * 60_000,
+    SUMMARY_TIME: 2 * 60_000,
 };
 
 export const sentryOptions = {
