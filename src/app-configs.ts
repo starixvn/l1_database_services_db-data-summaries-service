@@ -5,8 +5,8 @@ import { SERVICE_VERSION } from "./service-version";
 
 const db = {
     credential: "lmn_summary:LmnSummary",
-    server: "10.10.50.12:39101,10.10.50.13:39101,10.10.50.14:39101",
-    replSet: "L1pLocal",
+    server: "10.10.50.12:39200,10.10.50.13:39200,10.10.50.14:39200",
+    replSet: "L2Local",
 };
 const appName = encodeURI("Data Summaries DevMode");
 
@@ -14,7 +14,7 @@ const environment = "LOCAL-DEV";
 
 export const eventConfigs: SchedulerConfigs = {
     SUMMARY_ROUND: 60_000,
-    SUMMARY_TIME: 10 * 60_000,
+    SUMMARY_TIME: [60_000, 30_000],
 };
 
 export const sentryOptions: NodeOptions = {
