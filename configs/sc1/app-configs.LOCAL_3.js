@@ -7,7 +7,7 @@ const db = {
 };
 const appName = encodeURI("Data Summaries Service");
 
-const environment = "LOCAL-0";
+const environment = "LOCAL-3";
 
 export const eventConfigs = {
     SUMMARY_ROUND: 60_000,
