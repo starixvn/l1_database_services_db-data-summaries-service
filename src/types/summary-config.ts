@@ -6,7 +6,7 @@ export type SchemaBetSummaryCollectionConfig = Record<"round" | "bet", string>;
 
 export type BetSummaryAliasConfig = Record<"local" | "foreign" | "time" | "playerId" | "settled", string>;
 
-export type CalculationField = "stake" | "payout" | "refund";
+export type CalculationField = "tickets" | "stake" | "payout" | "refund";
 
 export type SchemaCalculationConfig = Record<CalculationField, string>;
 

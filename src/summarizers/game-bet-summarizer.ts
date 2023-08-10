@@ -9,7 +9,7 @@ const roundPipelineFactory = (config: BetSummaryConfig): Document[] => {
         coll: { bet: betCollectionName },
         filter,
         aliases: { local, foreign, playerId, settled, time },
-        calc: { payout, refund, stake },
+        calc: { tickets, stake, payout, refund },
     } = config;
 
     return [
@@ -33,7 +33,7 @@ const roundPipelineFactory = (config: BetSummaryConfig): Document[] => {
         {
             $group: {
                 _id: { roundId: "$roundId", time: "$time", currency: { $ifNull: ["$currency", ""] }, operatorId: { $ifNull: ["$operatorId", ""] } },
-                tickets: { $sum: { $toInt: { $gte: ["$playerId", 0] } } },
+                tickets: { $sum: tickets },
                 stake: { $sum: stake },
                 payout: { $sum: payout },
                 refund: { $sum: refund },

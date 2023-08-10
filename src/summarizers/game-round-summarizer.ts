@@ -8,7 +8,7 @@ const roundPipelineFactory = (config: RoundSummaryConfig): Document[] => {
         gameConfigs: { gameId },
         aliases: { local, playerId, settled, time },
         filter,
-        calc: { payout, refund, stake },
+        calc: { tickets, stake, payout, refund },
     } = config;
 
     return [
@@ -22,7 +22,7 @@ const roundPipelineFactory = (config: RoundSummaryConfig): Document[] => {
                 operatorId: 1,
                 partnerId: "$operatorId",
                 roundId: `$${local}`,
-                tickets: { $literal: 1 },
+                tickets,
                 stake,
                 payout,
                 refund,
