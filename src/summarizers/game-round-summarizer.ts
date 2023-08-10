@@ -6,9 +6,9 @@ import { RoundSummaryConfig } from "../types/summary-config";
 const roundPipelineFactory = (config: RoundSummaryConfig): Document[] => {
     const {
         gameConfigs: { gameId },
-        aliases: { local, playerId, settled, time },
+        aliases: { playerId, settled, time },
         filter,
-        calc: { tickets, stake, payout, refund },
+        calc: { roundId, tickets, stake, payout, refund },
     } = config;
 
     return [
@@ -21,7 +21,7 @@ const roundPipelineFactory = (config: RoundSummaryConfig): Document[] => {
                 gameId: { $literal: gameId },
                 operatorId: 1,
                 partnerId: "$operatorId",
-                roundId: `$${local}`,
+                roundId,
                 tickets,
                 stake,
                 payout,

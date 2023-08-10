@@ -22,7 +22,7 @@ export function parseSummaryConfig(summaryConfig: SchemaSummaryConfig): SummaryC
             db,
             coll: { round, bet },
             filter: filterRaw = "{}",
-            calc: { tickets = '{"$literal":1}', stake, payout, refund },
+            calc: { roundId = '"$roundId"', tickets = '{"$literal":1}', stake, payout, refund },
             ...restConfig
         } = summaryConfig;
 
@@ -31,7 +31,7 @@ export function parseSummaryConfig(summaryConfig: SchemaSummaryConfig): SummaryC
         const betCollectionName = [name, bet].filter(Boolean).join("");
 
         const coll: BetSummaryCollectionConfig = { round: { db, coll: roundCollectionName }, bet: betCollectionName };
-        const calc: CalculationConfig = { tickets: EJSON.parse(tickets), stake: EJSON.parse(stake), payout: EJSON.parse(payout), refund: EJSON.parse(refund) };
+        const calc: CalculationConfig = { roundId: EJSON.parse(roundId), tickets: EJSON.parse(tickets), stake: EJSON.parse(stake), payout: EJSON.parse(payout), refund: EJSON.parse(refund) };
 
         const filter = EJSON.parse(filterRaw);
 
@@ -42,7 +42,7 @@ export function parseSummaryConfig(summaryConfig: SchemaSummaryConfig): SummaryC
             db,
             coll: { round },
             filter: filterRaw = "{}",
-            calc: { tickets = "1", stake, payout, refund },
+            calc: { roundId = '"$id"', tickets = '{"$literal":1}', stake, payout, refund },
             ...restConfig
         } = summaryConfig;
 
@@ -50,7 +50,7 @@ export function parseSummaryConfig(summaryConfig: SchemaSummaryConfig): SummaryC
         const roundCollectionName = [name, round].filter(Boolean).join("");
 
         const coll: RoundSummaryCollectionConfig = { round: { db, coll: roundCollectionName } };
-        const calc: CalculationConfig = { tickets: EJSON.parse(tickets), stake: EJSON.parse(stake), payout: EJSON.parse(payout), refund: EJSON.parse(refund) };
+        const calc: CalculationConfig = { roundId: EJSON.parse(roundId), tickets: EJSON.parse(tickets), stake: EJSON.parse(stake), payout: EJSON.parse(payout), refund: EJSON.parse(refund) };
 
         const filter = EJSON.parse(filterRaw);
 

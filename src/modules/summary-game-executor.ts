@@ -98,42 +98,42 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
         const {
             gameConfigs: { gameId, name },
             coll: { round },
-            aliases: { local },
+            calc: { roundId: roundIdCalc },
         } = summaryConfig;
 
         const roundSummariesCollection = this.getCollection(this.roundSummariesNamespace);
         const roundCollection = this.getCollection(round);
 
-        let roundFlagUpdates: AnyBulkWriteOperation[] = [];
+        let gameRoundFlagUpdates: AnyBulkWriteOperation[] = [];
         let summaryFlagRemoves: AnyBulkWriteOperation[] = [];
 
-        const insertedCursor = roundSummariesCollection.find({ "__archive.inserted": true, gameId }, { projection: { _id: 1, roundId: 1, time: 1, tickets: 1 } });
+        const insertedCursor = roundSummariesCollection.find({ "__archive.inserted": true, gameId }, { projection: { _id: 1, roundId: 1, time: 1, players: 1 } });
         const warmingTime = new Date(Date.now() - 3_600_000);
 
         for await (const document of insertedCursor) {
-            const { _id, roundId, time, tickets } = document;
+            const { _id, roundId, time, players } = document;
 
             if (time <= warmingTime) {
-                roundFlagUpdates.push({ updateMany: { filter: { [local]: roundId }, update: { $set: { "__archive.summarized": true } } } });
+                gameRoundFlagUpdates.push({ updateMany: { filter: { $expr: { $eq: [roundIdCalc, roundId] } }, update: { $set: { "__archive.summarized": true } } } });
             }
 
-            if (tickets > 0) {
+            if (players instanceof Array && players.length > 0) {
                 summaryFlagRemoves.push({ updateOne: { filter: { _id }, update: { $unset: { "__archive.inserted": 1 } } } });
             } else {
                 summaryFlagRemoves.push({ deleteOne: { filter: { _id } } });
             }
 
-            if (roundFlagUpdates.length >= BULK_WRITE_THRESHOLD || summaryFlagRemoves.length >= BULK_WRITE_THRESHOLD) {
-                await this.executeBulkWrite(roundCollection, roundFlagUpdates, name);
+            if (gameRoundFlagUpdates.length >= BULK_WRITE_THRESHOLD || summaryFlagRemoves.length >= BULK_WRITE_THRESHOLD) {
+                await this.executeBulkWrite(roundCollection, gameRoundFlagUpdates, name);
                 await this.executeBulkWrite(roundSummariesCollection, summaryFlagRemoves, name);
 
-                roundFlagUpdates = [];
+                gameRoundFlagUpdates = [];
                 summaryFlagRemoves = [];
             }
         }
 
-        if (roundFlagUpdates.length > 0) {
-            await this.executeBulkWrite(roundCollection, roundFlagUpdates, name);
+        if (gameRoundFlagUpdates.length > 0) {
+            await this.executeBulkWrite(roundCollection, gameRoundFlagUpdates, name);
         }
 
         if (summaryFlagRemoves.length > 0) {
