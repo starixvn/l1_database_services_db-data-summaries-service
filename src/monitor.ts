@@ -20,16 +20,6 @@ export class Monitor {
         private readonly dailySummarizer: DailySummarizer
     ) {
         this.selfBound();
-
-        this.nodeEnv = nodeEnv;
-        this.scheduler = scheduler;
-        this.summaryRoundInitiator = summaryRoundInitiator;
-        this.gameRoundSummarizer = gameRoundSummarizer;
-        this.gameBetSummarizer = gameBetSummarizer;
-        this.summaryTimeInitiator = summaryTimeInitiator;
-        this.hourlySummarizer = hourlySummarizer;
-        this.dailySummarizer = dailySummarizer;
-
         this.reportUnhandleErrors();
     }
 

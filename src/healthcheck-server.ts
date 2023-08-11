@@ -31,7 +31,6 @@ export class HealthCheckServer {
 
     constructor(private readonly port: number) {
         this.selfBound();
-        this.port = port;
 
         this.server = http.createServer();
         this.server.listen(this.port);

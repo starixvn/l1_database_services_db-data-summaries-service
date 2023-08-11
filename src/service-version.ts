@@ -1,1 +1,1 @@
-export const SERVICE_VERSION = "2.0.7";
+export const SERVICE_VERSION = "2.0.8";

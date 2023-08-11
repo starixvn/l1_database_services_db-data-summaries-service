@@ -16,12 +16,6 @@ export class SummaryTimeExecutor {
         private readonly configs: { type: string; hours: number }
     ) {
         this.selfBound();
-
-        this.mongoClient = mongoClient;
-        this.roundSummariesNamespace = roundSummariesNamespace;
-        this.targetNamespace = targetNamespace;
-        this.pipelineFactory = pipelineFactory;
-        this.configs = configs;
     }
 
     get className(): string {

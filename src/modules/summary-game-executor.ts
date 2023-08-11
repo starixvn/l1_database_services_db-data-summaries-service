@@ -11,10 +11,6 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
 
     constructor(private readonly mongoClient: MongoClient, private readonly roundSummariesNamespace: ChangeStreamNameSpace, private readonly pipelineFactory: SummaryPipelineFactory<TConfig>) {
         this.selfBound();
-
-        this.mongoClient = mongoClient;
-        this.roundSummariesNamespace = roundSummariesNamespace;
-        this.pipelineFactory = pipelineFactory;
     }
 
     get className(): string {

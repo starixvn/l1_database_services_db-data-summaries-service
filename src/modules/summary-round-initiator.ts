@@ -17,8 +17,6 @@ export class SummaryRoundInitiator extends TypedEventEmitter<SummaryRoundInitiat
     constructor(protected readonly summaryConfigCollection: Collection<SchemaSummaryConfig>) {
         super();
         this.selfBound();
-
-        this.summaryConfigCollection = summaryConfigCollection;
     }
 
     get className() {
