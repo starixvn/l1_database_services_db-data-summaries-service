@@ -79,7 +79,10 @@ export class SummaryTimeExecutor {
         const doFlag = `__archive.do_${type}`;
 
         const roundSummariesCollection = this.getCollection(this.roundSummariesNamespace);
-        const updateResult = await roundSummariesCollection.updateMany({ $or: [{ [flag]: false }, { [flag]: null }], "__archive.inserted": { $ne: true } }, { $set: { [doFlag]: true } });
+        const updateResult = await roundSummariesCollection.updateMany(
+            { $or: [{ [flag]: false }, { [flag]: null }], "__archive.inserted": { $ne: true } },
+            { $set: { [doFlag]: true } }
+        );
 
         const { matchedCount, upsertedCount, modifiedCount } = updateResult;
         logger.logDebug(`#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}`, {

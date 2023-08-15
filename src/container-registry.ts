@@ -5,10 +5,10 @@ import { SummaryRoundInitiator } from "./modules/summary-round-initiator";
 import { SummaryTimeInitiator } from "./modules/summary-time-initiator";
 import { Monitor } from "./monitor";
 import { DailySummarizer } from "./summarizers/daily-summarizer";
+import { GameBetSummarizer } from "./summarizers/game-bet-summarizer";
 import { GameRoundSummarizer } from "./summarizers/game-round-summarizer";
 import { HourlySummarizer } from "./summarizers/hourly-summarizer";
 import { getCollection } from "./utils/mongodb-utils";
-import { GameBetSummarizer } from "./summarizers/game-bet-summarizer";
 
 export class ContainerRegistry {
     private readonly container: AwilixContainer;

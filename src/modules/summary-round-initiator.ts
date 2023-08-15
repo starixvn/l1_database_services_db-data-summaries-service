@@ -1,5 +1,6 @@
 import { Scheduler } from "@ldb/scheduler";
 import { MaybePromise, TypedEventEmitter } from "@ldb/types";
+import { stringify } from "@ldb/utils";
 import { Collection } from "mongodb";
 import { logger } from "../loggers";
 import { BetSummaryConfig, RoundSummaryConfig, SchemaSummaryConfig } from "../types/summary-config";
@@ -41,6 +42,8 @@ export class SummaryRoundInitiator extends TypedEventEmitter<SummaryRoundInitiat
                 this.emit("ROUND", summaryConfig);
                 continue;
             }
+
+            throw new TypeError(`Incorrect summary config ${stringify(summaryConfig)}`);
         }
     }
 

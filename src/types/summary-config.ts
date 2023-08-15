@@ -4,7 +4,9 @@ export type GameConfigInfo = { gameId: number; name: string };
 
 export type SchemaBetSummaryCollectionConfig = Record<"round" | "bet", string>;
 
-export type BetSummaryAliasConfig = Record<"foreign" | "time" | "playerId" | "settled", string>;
+export type CommonSummaryAliases = "time" | "playerId" | "settled";
+
+export type BetSummaryAliasConfig = Record<"foreign" | CommonSummaryAliases, string>;
 
 export type CalculationField = "roundId" | "tickets" | "stake" | "payout" | "refund";
 
@@ -24,7 +26,7 @@ export type SchemaBetSummaryConfig = {
 
 export type SchemaRoundSummaryCollectionConfig = Record<"round", string>;
 
-export type RoundSummaryAliasConfig = Record<"time" | "playerId" | "settled", string>;
+export type RoundSummaryAliasConfig = Record<CommonSummaryAliases, string>;
 
 export type SchemaRoundSummaryConfig = {
     _brand: "round";

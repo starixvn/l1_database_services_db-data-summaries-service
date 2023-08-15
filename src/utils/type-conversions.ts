@@ -31,7 +31,13 @@ export function parseSummaryConfig(summaryConfig: SchemaSummaryConfig): SummaryC
         const betCollectionName = [name, bet].filter(Boolean).join("");
 
         const coll: BetSummaryCollectionConfig = { round: { db, coll: roundCollectionName }, bet: betCollectionName };
-        const calc: CalculationConfig = { roundId: EJSON.parse(roundId), tickets: EJSON.parse(tickets), stake: EJSON.parse(stake), payout: EJSON.parse(payout), refund: EJSON.parse(refund) };
+        const calc: CalculationConfig = {
+            roundId: EJSON.parse(roundId),
+            tickets: EJSON.parse(tickets),
+            stake: EJSON.parse(stake),
+            payout: EJSON.parse(payout),
+            refund: EJSON.parse(refund),
+        };
 
         const filter = EJSON.parse(filterRaw);
 
@@ -50,7 +56,13 @@ export function parseSummaryConfig(summaryConfig: SchemaSummaryConfig): SummaryC
         const roundCollectionName = [name, round].filter(Boolean).join("");
 
         const coll: RoundSummaryCollectionConfig = { round: { db, coll: roundCollectionName } };
-        const calc: CalculationConfig = { roundId: EJSON.parse(roundId), tickets: EJSON.parse(tickets), stake: EJSON.parse(stake), payout: EJSON.parse(payout), refund: EJSON.parse(refund) };
+        const calc: CalculationConfig = {
+            roundId: EJSON.parse(roundId),
+            tickets: EJSON.parse(tickets),
+            stake: EJSON.parse(stake),
+            payout: EJSON.parse(payout),
+            refund: EJSON.parse(refund),
+        };
 
         const filter = EJSON.parse(filterRaw);
 

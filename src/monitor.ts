@@ -67,12 +67,6 @@ export class Monitor {
     private async devMode() {
         this.scheduler.on("SUMMARY_ROUND", this.devEventLogger.bind(this, this.scheduler.constructor.name, "SUMMARY_ROUND"));
         this.scheduler.on("SUMMARY_TIME", this.devEventLogger.bind(this, this.scheduler.constructor.name, "SUMMARY_TIME"));
-
-        // this.summaryRoundInitiator.on("BET", this.devEventLogger.bind(this, this.summaryRoundInitiator.className, "BET"));
-        // this.summaryRoundInitiator.on("ROUND", this.devEventLogger.bind(this, this.summaryRoundInitiator.className, "ROUND"));
-
-        // this.summaryTimeInitiator.on("HOURLY", this.devEventLogger.bind(this, this.summaryTimeInitiator.className, "HOURLY"));
-        // this.summaryTimeInitiator.on("DAILY", this.devEventLogger.bind(this, this.summaryTimeInitiator.className, "DAILY"));
     }
     private devEventLogger(title: string, subject: string, ...args: unknown[]) {
         terminal.logDebug(args.map((arg) => stringify(arg)).join("\n"), { title, subject });
