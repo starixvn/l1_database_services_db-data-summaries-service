@@ -27,7 +27,8 @@
         "@sc-logger/terminal": "^1.0.4",
         "awilix": "^8.0.1",
         "bson": "^5.4.0",
-        "mongodb": "^5.8.0"
+        "mongodb": "^5.8.0",
+        "saslprep": "^1.0.3"
     },
     "devDependencies": {
         "@commitlint/cli": "^17.7.1",

@@ -3727,6 +3727,13 @@ safe-regex@^2.1.1:
   dependencies:
     regexp-tree "~0.1.1"
 
+saslprep@^1.0.3:
+  version "1.0.3"
+  resolved "https://npm.lumigame.com/saslprep/-/saslprep-1.0.3.tgz#4c02f946b56cf54297e347ba1093e7acac4cf226"
+  integrity sha512-/MY/PEMbk2SuY5sScONwhUDsV2p77Znkb/q3nSVstq/yQzYJOH/Azh29p9oJLsl3LnQwSvZDKagDGBsBwSooag==
+  dependencies:
+    sparse-bitfield "^3.0.3"
+
 "semver@2 || 3 || 4 || 5":
   version "5.7.2"
   resolved "https://npm.lumigame.com/semver/-/semver-5.7.2.tgz#48d55db737c3287cd4835e17fa13feace1c41ef8"
