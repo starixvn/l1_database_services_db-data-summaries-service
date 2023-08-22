@@ -1,5 +1,7 @@
 node_modules
+node_modules_tmp
 **/node_modules
+**/node_modules_tmp
 src
 /*.[jt]s
 /.*

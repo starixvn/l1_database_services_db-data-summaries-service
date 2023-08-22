@@ -1,0 +1,7 @@
+variables:
+  NODEJS_IMAGE: hub.lumigame.com/docker-hub/library/node:lts-alpine
+
+include:
+  - project: ci/core-cicd
+    ref: main
+    file: luminet.gitlab-ci.yml
