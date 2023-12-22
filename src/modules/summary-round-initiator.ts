@@ -64,7 +64,7 @@ export class SummaryRoundInitiator extends TypedEventEmitter<SummaryRoundInitiat
             return false;
         }
 
-        scheduler.addListener("SUMMARY_ROUND", this.initialSummaryRound);
+        scheduler.removeListener("SUMMARY_ROUND", this.initialSummaryRound);
         this.schedulers.delete(scheduler);
         return true;
     }

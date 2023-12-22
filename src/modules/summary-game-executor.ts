@@ -156,7 +156,7 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
             return false;
         }
 
-        emitter.addListener(event, this.execute);
+        emitter.removeListener(event, this.execute);
         this.emitters.delete(emitter);
         return true;
     }
