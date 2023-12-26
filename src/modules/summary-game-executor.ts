@@ -47,8 +47,7 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
             this.summaryFlag.set(flag, true);
             await this.runSummary(summaryConfig);
         } finally {
-            this.summaryFlag.set(flag, false);
-            logger.logDebug("", { title: this.className, subject: flag });
+            this.summaryFlag.delete(flag);
         }
     }
 
@@ -82,11 +81,6 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
         };
 
         pipeline.push(filterStage);
-
-        if (summaryConfig.gameConfigs.gameId === 99) {
-            logger.logDebug(await roundCollection.aggregate(pipeline, aggregateOptions).toArray());
-        }
-
         pipeline.push(mergeStage);
 
         try {
@@ -109,9 +103,9 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
         const updateResult = await gameRoundCollection.updateMany({ $or: [{ [flag]: false }, { [flag]: null }] }, { $set: { [doFlag]: true } });
 
         const { matchedCount, upsertedCount, modifiedCount } = updateResult;
-        logger.logDebug(`#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}`, {
+        logger.logDebug("", {
             title: `${this.className}.markFlag`,
-            subject: gameRoundCollection.namespace,
+            subject: `#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}   (${gameRoundCollection.namespace})`,
         });
     }
 
@@ -125,14 +119,15 @@ export class SummaryGameExecutor<TConfig extends SummaryConfig> {
 
         const warmingTime = new Date(Date.now() - 3_600_000);
         const gameRoundCollection = this.getCollection(round);
-        const updateResult = await gameRoundCollection.updateMany({ [doFlag]: true, [time]: { $lt: warmingTime } }, { $set: { [flag]: true } });
-        const removeResult = await gameRoundCollection.updateMany({ [doFlag]: true }, { $unset: { [doFlag]: 1 } });
+        const { matchedCount: matchedUpdated, modifiedCount: modifiedUpdated } = await gameRoundCollection.updateMany(
+            { [doFlag]: true, [time]: { $lt: warmingTime } },
+            { $set: { [flag]: true } }
+        );
+        const { matchedCount: matchedRemoved, modifiedCount: modifiedRemoved } = await gameRoundCollection.updateMany({ [doFlag]: true }, { $unset: { [doFlag]: 1 } });
 
-        const { matchedCount: matchedUpdated, modifiedCount: modifiedUpdated } = updateResult;
-        const { matchedCount: matchedRemoved, modifiedCount: modifiedRemoved } = removeResult;
-        logger.logDebug(`+++ #-${matchedUpdated} M-${modifiedUpdated} +++    --- #-${matchedRemoved} M-${modifiedRemoved} ---`, {
-            title: `${this.className}.updateFlag`,
-            subject: gameRoundCollection.namespace,
+        logger.logDebug("", {
+            title: `${this.className}`,
+            subject: `+++ #-${matchedUpdated} M-${modifiedUpdated} +++   --- #-${matchedRemoved} M-${modifiedRemoved} ---   (${gameRoundCollection.namespace})`,
         });
     }
     protected handleError(error: unknown, component: string): void {

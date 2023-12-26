@@ -85,9 +85,9 @@ export class SummaryTimeExecutor {
         );
 
         const { matchedCount, upsertedCount, modifiedCount } = updateResult;
-        logger.logDebug(`#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}`, {
+        logger.logDebug("", {
             title: `${this.className}.markFlag - ${type}`,
-            subject: roundSummariesCollection.namespace,
+            subject: `#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}   (${roundSummariesCollection.namespace})`,
         });
     }
 
@@ -97,11 +97,11 @@ export class SummaryTimeExecutor {
         const doFlag = `__archive.do_${type}`;
 
         const roundSummariesCollection = this.getCollection(this.roundSummariesNamespace);
-        const updateResult = await roundSummariesCollection.updateMany({ [doFlag]: true }, [{ $set: { [doFlag]: "$$REMOVE", [flag]: true } }]);
-        const { matchedCount, upsertedCount, modifiedCount } = updateResult;
-        logger.logDebug(`#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}`, {
+        const { matchedCount, upsertedCount, modifiedCount } = await roundSummariesCollection.updateMany({ [doFlag]: true }, [{ $set: { [doFlag]: "$$REMOVE", [flag]: true } }]);
+
+        logger.logDebug("", {
             title: `${this.className}.updateFlag - ${type}`,
-            subject: roundSummariesCollection.namespace,
+            subject: `#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}   (${roundSummariesCollection.namespace})`,
         });
     }
 

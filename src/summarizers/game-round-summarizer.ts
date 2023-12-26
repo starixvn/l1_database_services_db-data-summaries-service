@@ -40,9 +40,9 @@ export class GameRoundSummarizer extends SummaryGameExecutor<RoundSummaryConfig>
     }
 
     subscribe(emitter: SummaryRoundInitiator) {
-        return super.subscribe(emitter, "ROUND");
+        return super.subscribe(emitter, "round");
     }
     unsubscribe(emitter: SummaryRoundInitiator) {
-        return super.unsubscribe(emitter, "ROUND");
+        return super.unsubscribe(emitter, "round");
     }
 }

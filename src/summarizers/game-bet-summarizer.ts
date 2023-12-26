@@ -6,7 +6,9 @@ import { BetSummaryConfig } from "../types/summary-config";
 const roundPipelineFactory = (config: BetSummaryConfig): Document[] => {
     const {
         gameConfigs: { gameId },
-        coll: { bet: betCollectionName },
+        coll: {
+            bet: { coll: betCollectionName },
+        },
         filter,
         aliases: { foreign, playerId, settled, time },
         calc: { roundId, tickets, stake, payout, refund },
@@ -67,9 +69,9 @@ export class GameBetSummarizer extends SummaryGameExecutor<BetSummaryConfig> {
     }
 
     subscribe(emitter: SummaryRoundInitiator) {
-        return super.subscribe(emitter, "BET");
+        return super.subscribe(emitter, "bet");
     }
     unsubscribe(emitter: SummaryRoundInitiator) {
-        return super.unsubscribe(emitter, "BET");
+        return super.unsubscribe(emitter, "bet");
     }
 }

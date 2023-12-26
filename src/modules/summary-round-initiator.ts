@@ -3,14 +3,11 @@ import { MaybePromise, TypedEventEmitter } from "@ldb/types";
 import { stringify } from "@ldb/utils";
 import { Collection } from "mongodb";
 import { logger } from "../loggers";
-import { BetSummaryConfig, RoundSummaryConfig, SchemaSummaryConfig } from "../types/summary-config";
+import { SchemaSummaryConfig, SummaryConfig } from "../types/summary-config";
 import { parseSummaryConfig } from "../utils/type-conversions";
 import { isBetSummaryConfig, isRoundSummaryConfig } from "../utils/type-guards";
 
-export type SummaryRoundInitiatorEvents = {
-    BET: (...args: [BetSummaryConfig]) => MaybePromise<void>;
-    ROUND: (...args: [RoundSummaryConfig]) => MaybePromise<void>;
-};
+export type SummaryRoundInitiatorEvents = Record<SummaryConfig["_brand"], (config: SummaryConfig) => MaybePromise<void>>;
 
 export class SummaryRoundInitiator extends TypedEventEmitter<SummaryRoundInitiatorEvents> {
     private readonly schedulers: Set<Scheduler> = new Set();
@@ -35,11 +32,11 @@ export class SummaryRoundInitiator extends TypedEventEmitter<SummaryRoundInitiat
             const summaryConfig = parseSummaryConfig(summaryConfigRaw);
 
             if (isBetSummaryConfig(summaryConfig)) {
-                this.emit("BET", summaryConfig);
+                this.emit("bet", summaryConfig);
                 continue;
             }
             if (isRoundSummaryConfig(summaryConfig)) {
-                this.emit("ROUND", summaryConfig);
+                this.emit("round", summaryConfig);
                 continue;
             }
 

@@ -7,6 +7,8 @@ import { DailySummarizer } from "./summarizers/daily-summarizer";
 import { GameBetSummarizer } from "./summarizers/game-bet-summarizer";
 import { GameRoundSummarizer } from "./summarizers/game-round-summarizer";
 import { HourlySummarizer } from "./summarizers/hourly-summarizer";
+import { RoundTransformer } from "./transformers/round-transformer";
+import { TicketTransformer } from "./transformers/ticket-transformer";
 
 export class Monitor {
     constructor(
@@ -15,6 +17,8 @@ export class Monitor {
         private readonly summaryRoundInitiator: SummaryRoundInitiator,
         private readonly gameRoundSummarizer: GameRoundSummarizer,
         private readonly gameBetSummarizer: GameBetSummarizer,
+        private readonly roundTransformer: RoundTransformer,
+        private readonly ticketTransformer: TicketTransformer,
         private readonly summaryTimeInitiator: SummaryTimeInitiator,
         private readonly hourlySummarizer: HourlySummarizer,
         private readonly dailySummarizer: DailySummarizer
@@ -49,6 +53,8 @@ export class Monitor {
         this.summaryRoundInitiator.subscribe(this.scheduler);
         this.gameRoundSummarizer.subscribe(this.summaryRoundInitiator);
         this.gameBetSummarizer.subscribe(this.summaryRoundInitiator);
+        this.roundTransformer.subscribe(this.summaryRoundInitiator);
+        this.ticketTransformer.subscribe(this.summaryRoundInitiator);
 
         this.summaryTimeInitiator.subscribe(this.scheduler);
         this.hourlySummarizer.subscribe(this.summaryTimeInitiator);

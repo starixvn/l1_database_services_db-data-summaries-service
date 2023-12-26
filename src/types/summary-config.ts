@@ -42,7 +42,7 @@ export type SchemaRoundSummaryConfig = {
 
 export type SchemaSummaryConfig = SchemaBetSummaryConfig | SchemaRoundSummaryConfig;
 
-export type BetSummaryCollectionConfig = { round: ChangeStreamNameSpace; bet: string };
+export type BetSummaryCollectionConfig = { round: ChangeStreamNameSpace; bet: ChangeStreamNameSpace };
 
 export type CalculationConfig = Record<CalculationField, string | Document | Document[]>;
 

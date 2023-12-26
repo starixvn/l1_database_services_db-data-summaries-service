@@ -1,6 +1,6 @@
 {
     "name": "db-data-summaries-service",
-    "version": "2.0.9",
+    "version": "2.1.0",
     "license": "ISC",
     "type": "module",
     "scripts": {
@@ -11,12 +11,11 @@
         "test": "NODE_OPTIONS=\"--experimental-vm-modules --es-module-specifier-resolution=node --no-warnings\" jest --testPathPattern=tests/unit-tests/",
         "test-coverage": "NODE_OPTIONS=\"--experimental-vm-modules --es-module-specifier-resolution=node --no-warnings\" jest --collect-coverage --testPathPattern=tests/unit-tests/",
         "integration-test": "NODE_OPTIONS=\"--experimental-vm-modules --es-module-specifier-resolution=node --no-warnings\" jest --config ./jest.integration-test.config.ts --testPathPattern=tests/integration-tests/",
-        "dev": "ts-node-esm ./src/app.ts",
-        "dev:hc": "ts-node-esm ./src/healthcheck.ts",
+        "dev": "pnpm build && NODE_OPTIONS=\"--enable-source-maps --no-warnings --es-module-specifier-resolution=node\" node lib/app.js",
         "build": "rimraf lib && tsc",
         "reg": "npm set registry http://npm.lumigame.com",
-        "run:container": "node --es-module-specifier-resolution=node app.js",
-        "run:healthcheck": "node --es-module-specifier-resolution=node healthcheck.js"
+        "docker:build": "docker build . --tag hub.lumigame.com/ldb/data-summaries-service:${npm_package_version}",
+        "docker:run": "docker run -it --rm --env NODE_ENV=DEVELOPMENT --init hub.lumigame.com/ldb/data-summaries-service:${npm_package_version}"
     },
     "dependencies": {
         "@ldb/scheduler": "^1.0.1",
@@ -44,12 +43,11 @@
         "eslint-plugin-security": "^2.1.0",
         "jest": "^29.7.0",
         "jest-extended": "^4.0.2",
-        "jest-html-reporters": "^3.1.6",
+        "jest-html-reporters": "^3.1.7",
         "jest-junit": "^16.0.0",
         "jest-sonar-reporter": "^2.0.0",
         "rimraf": "^5.0.5",
         "ts-jest": "^29.1.1",
-        "ts-node": "^10.9.2",
         "typescript": "^5.3.3"
     },
     "jestSonar": {
