@@ -5,5 +5,5 @@ export const namespaces: Record<string, ChangeStreamNameSpace> = {
     roundSummaries: { db: "summary", coll: "round_summaries" },
     hourlySummaries: { db: "summary", coll: "hourly_summaries" },
     dailySummaries: { db: "summary", coll: "daily_summaries" },
-    ticketSummaries: { db: "summary", coll: "ticket_summaries" },
+    ticketSummaries: { db: "minigame", coll: "ticket_silos" },
 };

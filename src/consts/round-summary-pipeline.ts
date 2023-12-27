@@ -3,7 +3,7 @@ import { ChangeStreamNameSpace } from "mongodb";
 import { SummaryConfig } from "../types/summary-config";
 import { DO_FLAG } from "./summaryFlags";
 
-export const roundSummaryPipelineFactory = (summaryConfig: SummaryConfig, ticketSummariesNamespace: ChangeStreamNameSpace, roundSummariesNamespace: ChangeStreamNameSpace) => {
+export const roundSummaryPipelineFactory = (summaryConfig: SummaryConfig, roundSummariesNamespace: ChangeStreamNameSpace) => {
     const {
         gameConfigs: { gameId },
         coll: { round },
@@ -21,6 +21,7 @@ export const roundSummaryPipelineFactory = (summaryConfig: SummaryConfig, ticket
                     operatorId: { $ifNull: ["$operatorId", ""] },
                     siteId: { $ifNull: ["$siteId", ""] },
                 },
+                time: { $min: "$time" },
                 tickets: { $sum: "$tickets" },
                 stake: { $sum: "$stake" },
                 payout: { $sum: "$payout" },
@@ -32,10 +33,10 @@ export const roundSummaryPipelineFactory = (summaryConfig: SummaryConfig, ticket
         {
             $lookup: {
                 from: round.coll,
-                localField: "roundId",
+                localField: "_id.roundId",
                 foreignField: "id",
                 as: "round",
-                pipeline: [{ $project: { _id: 0, time } }],
+                pipeline: [{ $project: { _id: 0, time: `$${time}` } }],
             },
         },
         { $unwind: { path: "$round", preserveNullAndEmptyArrays: false } },
@@ -43,11 +44,11 @@ export const roundSummaryPipelineFactory = (summaryConfig: SummaryConfig, ticket
         {
             $project: {
                 _id: 0,
-                time: "$_id.time",
+                time: "$time",
                 currency: "$_id.currency",
                 gameId: "$_id.gameId",
                 operatorId: "$_id.operatorId",
-                partnerId: "$_id.operatorId",
+                siteId: "$_id.siteId",
                 roundId: "$_id.roundId",
                 tickets: "$tickets",
                 stake: "$stake",

@@ -81,15 +81,16 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
     protected async runSummary(summaryConfig: SC) {
         const aggregateOptions: AggregateOptions = { allowDiskUse: true };
         const {
+            gameConfigs: { gameId },
             aliases: { time },
         } = summaryConfig;
 
         const ticketCollection = getCollection(this.mongoClient, this.ticketSummariesNamespace);
-        const pipeline: Document[] = roundSummaryPipelineFactory(summaryConfig, this.ticketSummariesNamespace, this.roundSummariesNamespace);
+        const pipeline: Document[] = roundSummaryPipelineFactory(summaryConfig, this.roundSummariesNamespace);
 
-        await this.setDoSummaryFlag(ticketCollection);
+        await this.setDoSummaryFlag(ticketCollection, gameId);
         await ticketCollection.aggregate(pipeline, aggregateOptions).tryNext();
-        await this.removeDoSummaryFlag(ticketCollection, time);
+        await this.removeDoSummaryFlag(ticketCollection, time, gameId);
     }
 
     protected prepareTransformPipeline(summaryConfig: SC) {
@@ -120,26 +121,26 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         return pipeline;
     }
 
-    protected async setDoSummaryFlag(roundCollection: Collection) {
-        const { matchedCount, upsertedCount, modifiedCount } = await roundCollection.updateMany(
-            { $or: [{ [DONE_FLAG]: false }, { [DONE_FLAG]: null }] },
+    protected async setDoSummaryFlag(collection: Collection, gameId?: number) {
+        const { matchedCount, upsertedCount, modifiedCount } = await collection.updateMany(
+            { $or: [{ [DONE_FLAG]: false }, { [DONE_FLAG]: null }], gameId },
             { $set: { [DO_FLAG]: true } }
         );
 
         this.logger.logDebug("", {
             title: this.className,
-            subject: `#=${matchedCount} U=${upsertedCount} M=${modifiedCount}   (${roundCollection.namespace})`,
+            subject: `#=${matchedCount} U=${upsertedCount} M=${modifiedCount}   (${collection.namespace})`,
         });
     }
 
-    protected async removeDoSummaryFlag(roundCollection: Collection, timeField: string) {
+    protected async removeDoSummaryFlag(roundCollection: Collection, timeField: string, gameId?: number) {
         const warmingTime = new Date(Date.now() - 3_600_000);
 
         const { matchedCount: matchedUpdated, modifiedCount: modifiedUpdated } = await roundCollection.updateMany(
-            { [DO_FLAG]: true, [timeField]: { $lt: warmingTime } },
+            { [DO_FLAG]: true, gameId, [timeField]: { $lt: warmingTime } },
             { $set: { [DONE_FLAG]: true } }
         );
-        const { matchedCount: matchedRemoved, modifiedCount: modifiedRemoved } = await roundCollection.updateMany({ [DO_FLAG]: true }, { $unset: { [DO_FLAG]: 1 } });
+        const { matchedCount: matchedRemoved, modifiedCount: modifiedRemoved } = await roundCollection.updateMany({ [DO_FLAG]: true, gameId }, { $unset: { [DO_FLAG]: 1 } });
 
         this.logger.logDebug("", {
             title: this.className,
