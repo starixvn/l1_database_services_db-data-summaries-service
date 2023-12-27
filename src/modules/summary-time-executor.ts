@@ -1,4 +1,4 @@
-import { AggregateOptions, ChangeStreamNameSpace, Document, MongoClient } from "mongodb";
+import { AggregateOptions, ChangeStreamNameSpace, Document, MongoClient, MongoServerError } from "mongodb";
 import { logger } from "../loggers";
 import { TimePipelineFactory } from "../types/pipeline-factory";
 import { getCollection } from "../utils/mongodb-utils";
@@ -57,7 +57,7 @@ export class SummaryTimeExecutor {
         const mergeStage: Document = {
             $merge: {
                 into: this.targetNamespace,
-                on: ["gameId", "currency", "operatorId", "time"],
+                on: ["gameId", "currency", "operatorId", "siteId", "time"],
                 whenMatched: "replace",
                 whenNotMatched: "insert",
             },
@@ -106,6 +106,9 @@ export class SummaryTimeExecutor {
     }
 
     protected handleError(error: unknown, component: string): void {
+        if (error instanceof MongoServerError) {
+            delete error.stack;
+        }
         logger.logError(`${this.className}.${component}`, error);
     }
 

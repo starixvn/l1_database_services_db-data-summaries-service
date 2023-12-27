@@ -1,8 +1,8 @@
 import { GenericListener, TypedEventEmitter } from "@ldb/types";
 import { logger as baseLogger } from "../loggers";
 
-export class Subsciber<E extends string, ED extends Record<E, GenericListener>, EE extends TypedEventEmitter<ED> = TypedEventEmitter<ED>> {
-    private readonly producers: Set<EE> = new Set();
+export class Subsciber<PubEvent extends string, PubEventDesc extends Record<PubEvent, GenericListener>, Publisher extends TypedEventEmitter<PubEventDesc> = TypedEventEmitter<PubEventDesc>> {
+    private readonly publishers: Set<Publisher> = new Set();
 
     constructor(protected readonly logger: typeof baseLogger = baseLogger) {}
 
@@ -14,23 +14,23 @@ export class Subsciber<E extends string, ED extends Record<E, GenericListener>, 
         this.logger.logError(`${this.className}.${component}`, error);
     }
 
-    subscribe<Event extends E>(producer: EE, event: Event, listener: ED[Event]): boolean {
-        if (this.producers.has(producer)) {
+    subscribe<Event extends PubEvent>(publisher: Publisher, event: Event, listener: PubEventDesc[Event]): boolean {
+        if (this.publishers.has(publisher)) {
             return false;
         }
 
-        this.producers.add(producer);
-        producer.addListener<Event>(event, listener);
+        this.publishers.add(publisher);
+        publisher.addListener<Event>(event, listener);
         return true;
     }
 
-    unsubscribe<Event extends E>(producer: EE, event: Event, listener: ED[Event]): boolean {
-        if (!this.producers.has(producer)) {
+    unsubscribe<Event extends PubEvent>(publisher: Publisher, event: Event, listener: PubEventDesc[Event]): boolean {
+        if (!this.publishers.has(publisher)) {
             return false;
         }
 
-        producer.removeListener<Event>(event, listener);
-        this.producers.delete(producer);
+        publisher.removeListener<Event>(event, listener);
+        this.publishers.delete(publisher);
         return true;
     }
 }

@@ -5,8 +5,6 @@ import { SummaryRoundInitiator } from "./modules/summary-round-initiator";
 import { SummaryTimeInitiator } from "./modules/summary-time-initiator";
 import { Monitor } from "./monitor";
 import { DailySummarizer } from "./summarizers/daily-summarizer";
-import { GameBetSummarizer } from "./summarizers/game-bet-summarizer";
-import { GameRoundSummarizer } from "./summarizers/game-round-summarizer";
 import { HourlySummarizer } from "./summarizers/hourly-summarizer";
 import { RoundTransformer } from "./transformers/round-transformer";
 import { TicketTransformer } from "./transformers/ticket-transformer";
@@ -55,8 +53,6 @@ export class ContainerRegistry {
     private registerClasses() {
         this.container.register({
             summaryRoundInitiator: asClass(SummaryRoundInitiator).singleton(),
-            gameRoundSummarizer: asClass(GameRoundSummarizer).singleton(),
-            gameBetSummarizer: asClass(GameBetSummarizer).singleton(),
             roundTransformer: asClass(RoundTransformer).singleton(),
             ticketTransformer: asClass(TicketTransformer).singleton(),
             summaryTimeInitiator: asClass(SummaryTimeInitiator).singleton(),

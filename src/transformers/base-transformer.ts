@@ -1,18 +1,24 @@
 import { MaybePromise } from "@ldb/types";
-import { AggregateOptions, ChangeStreamNameSpace, Collection, Document, MongoClient } from "mongodb";
-import { DONE_FLAG, DO_FLAG } from "../consts/archiveFlags";
+import { AggregateOptions, ChangeStreamNameSpace, Collection, Document, MongoClient, MongoServerError } from "mongodb";
+import { roundSummaryPipelineFactory } from "../consts/round-summary-pipeline";
+import { DONE_FLAG, DO_FLAG } from "../consts/summaryFlags";
 import { Subsciber } from "../modules/subscriber";
 import { SummaryConfig } from "../types/summary-config";
 import { getCollection } from "../utils/mongodb-utils";
 
 type Events<SC extends SummaryConfig> = SC["_brand"];
-export type EventDescriptions<SC extends SummaryConfig> = Record<Events<SC>, (config: SC) => MaybePromise<void>>;
+type EventDescriptions<SC extends SummaryConfig> = Record<Events<SC>, (config: SC) => MaybePromise<void>>;
 export type PipelineFactory<SC extends SummaryConfig> = (...args: [SC]) => Document[];
 
 export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<SC>, EventDescriptions<SC>> {
     private readonly flags: Map<string, boolean> = new Map();
 
-    constructor(private readonly mongoClient: MongoClient, private readonly targetNamespace: ChangeStreamNameSpace, private readonly pipelineFactory: PipelineFactory<SC>) {
+    constructor(
+        private readonly mongoClient: MongoClient,
+        private readonly ticketSummariesNamespace: ChangeStreamNameSpace,
+        private readonly roundSummariesNamespace: ChangeStreamNameSpace,
+        private readonly pipelineFactory: PipelineFactory<SC>
+    ) {
         super();
         this.selfBound();
     }
@@ -49,6 +55,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
 
         try {
             this.flags.set(flag, true);
+            await this.runTransform(summaryConfig);
             await this.runSummary(summaryConfig);
         } catch (error: unknown) {
             this.handleError(error, flag);
@@ -57,21 +64,35 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         }
     }
 
-    protected async runSummary(summaryConfig: SC) {
+    protected async runTransform(summaryConfig: SC) {
         const aggregateOptions: AggregateOptions = { allowDiskUse: true };
         const {
             aliases: { time },
         } = summaryConfig;
 
         const sourceCollection = this.getSourceCollection(summaryConfig);
-        const pipeline = this.preparePipeline(summaryConfig);
+        const pipeline = this.prepareTransformPipeline(summaryConfig);
 
         await this.setDoSummaryFlag(sourceCollection);
         await sourceCollection.aggregate(pipeline, aggregateOptions).tryNext();
         await this.removeDoSummaryFlag(sourceCollection, time);
     }
 
-    protected preparePipeline(summaryConfig: SC) {
+    protected async runSummary(summaryConfig: SC) {
+        const aggregateOptions: AggregateOptions = { allowDiskUse: true };
+        const {
+            aliases: { time },
+        } = summaryConfig;
+
+        const ticketCollection = getCollection(this.mongoClient, this.ticketSummariesNamespace);
+        const pipeline: Document[] = roundSummaryPipelineFactory(summaryConfig, this.ticketSummariesNamespace, this.roundSummariesNamespace);
+
+        await this.setDoSummaryFlag(ticketCollection);
+        await ticketCollection.aggregate(pipeline, aggregateOptions).tryNext();
+        await this.removeDoSummaryFlag(ticketCollection, time);
+    }
+
+    protected prepareTransformPipeline(summaryConfig: SC) {
         const pipeline = this.getPipeline(summaryConfig);
 
         const filterStage: Document = {
@@ -86,8 +107,8 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         };
         const mergeStage: Document = {
             $merge: {
-                into: this.targetNamespace,
-                on: ["gameId", "operatorId", "roundId", "playerId"],
+                into: this.ticketSummariesNamespace,
+                on: ["gameId", "roundId", "operatorId", "playerId"],
                 whenMatched: "replace",
                 whenNotMatched: "insert",
             },
@@ -124,5 +145,12 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
             title: this.className,
             subject: `+++ #=${matchedUpdated} M=${modifiedUpdated} +++   --- #=${matchedRemoved} M=${modifiedRemoved} ---   (${roundCollection.namespace})`,
         });
+    }
+
+    protected handleError(error: unknown, component: string): void {
+        if (error instanceof MongoServerError) {
+            delete error.stack;
+        }
+        return super.handleError(error, component);
     }
 }

@@ -1,5 +1,5 @@
 import { ChangeStreamNameSpace, Document, MongoClient } from "mongodb";
-import { DO_FLAG } from "../consts/archiveFlags";
+import { DO_FLAG } from "../consts/summaryFlags";
 import { SummaryRoundInitiator } from "../modules/summary-round-initiator";
 import { RoundSummaryConfig } from "../types/summary-config";
 import { BaseTransformer } from "./base-transformer";
@@ -41,8 +41,8 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
 };
 
 export class RoundTransformer extends BaseTransformer<RoundSummaryConfig> {
-    constructor(mongoClient: MongoClient, ticketSummariesNamespace: ChangeStreamNameSpace) {
-        super(mongoClient, ticketSummariesNamespace, pipelineFactory);
+    constructor(mongoClient: MongoClient, ticketSummariesNamespace: ChangeStreamNameSpace, roundSummariesNamespace: ChangeStreamNameSpace) {
+        super(mongoClient, ticketSummariesNamespace, roundSummariesNamespace, pipelineFactory);
     }
 
     subscribe(producer: SummaryRoundInitiator): boolean {

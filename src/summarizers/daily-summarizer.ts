@@ -12,13 +12,14 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
                 currency: "$currency",
                 gameId: "$gameId",
                 operatorId: "$operatorId",
+                siteId: "$siteId",
             },
         },
     },
     {
         $lookup: {
             from: sourceCollectionName,
-            let: { time: "$_id.time", timeTo: "$_id.timeTo", currency: "$_id.currency", gameId: "$_id.gameId", operatorId: "$_id.operatorId" },
+            let: { time: "$_id.time", timeTo: "$_id.timeTo", currency: "$_id.currency", gameId: "$_id.gameId", operatorId: "$_id.operatorId", siteId: "$_id.siteId" },
             pipeline: [
                 {
                     $match: {
@@ -29,6 +30,7 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
                                 { $eq: ["$currency", "$$currency"] },
                                 { $eq: ["$gameId", "$$gameId"] },
                                 { $eq: ["$operatorId", "$$operatorId"] },
+                                { $eq: ["$siteId", "$$siteId"] },
                             ],
                         },
                     },
@@ -57,10 +59,7 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             currency: "$_id.currency",
             gameId: "$_id.gameId",
             operatorId: "$_id.operatorId",
-
-            /** Backward compatibility */
-            partnerId: "$_id.operatorId",
-
+            siteId: "$_id.siteId",
             tickets: "$tickets",
             stake: "$stake",
             payout: "$payout",
