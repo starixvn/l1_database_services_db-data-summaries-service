@@ -22,6 +22,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
             $group: {
                 _id: { roundId: `$${foreign}`, operatorId: "$operatorId", playerId: { $toString: "$playerId" } },
                 time: { $max: "$time" },
+                siteId: { $max: "$siteId" },
                 currency: { $max: "$currency" },
                 tickets: { $sum: tickets },
                 stake: { $sum: stake },
@@ -36,7 +37,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                 currency: "$currency",
                 gameId: { $literal: gameId },
                 operatorId: "$_id.operatorId",
-                siteId: { $cond: [{ $eq: ["$operatorId", { $literal: "SabaPlay" }] }, "$siteId", "$$REMOVE"] },
+                siteId: { $cond: [{ $eq: ["$_id.operatorId", { $literal: "SabaPlay" }] }, "$siteId", "$$REMOVE"] },
                 roundId: "$_id.roundId",
                 tickets: "$tickets",
                 stake: "$stake",

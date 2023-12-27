@@ -99,10 +99,8 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         const filterStage: Document = {
             $match: {
                 gameId: { $ne: null },
-                currency: { $ne: null },
-                operatorId: { $ne: null },
-                time: { $ne: null },
                 roundId: { $ne: null },
+                operatorId: { $ne: null },
                 playerId: { $ne: null },
             },
         };
