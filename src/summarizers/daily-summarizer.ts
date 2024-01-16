@@ -59,6 +59,7 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             currency: "$_id.currency",
             gameId: "$_id.gameId",
             operatorId: "$_id.operatorId",
+            partnerId: "$_id.operatorId",
             siteId: "$_id.siteId",
             tickets: "$tickets",
             stake: "$stake",
