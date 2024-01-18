@@ -1,4 +1,4 @@
-import { AggregateOptions, ChangeStreamNameSpace, Document, MongoClient } from "mongodb";
+import { AggregateOptions, ChangeStreamNameSpace, Document, MongoClient, MongoServerError } from "mongodb";
 import { logger } from "../loggers";
 import { TimePipelineFactory } from "../types/pipeline-factory";
 import { getCollection } from "../utils/mongodb-utils";
@@ -57,7 +57,7 @@ export class SummaryTimeExecutor {
         const mergeStage: Document = {
             $merge: {
                 into: this.targetNamespace,
-                on: ["gameId", "currency", "operatorId", "time"],
+                on: ["gameId", "currency", "operatorId", "siteId", "time"],
                 whenMatched: "replace",
                 whenNotMatched: "insert",
             },
@@ -85,9 +85,9 @@ export class SummaryTimeExecutor {
         );
 
         const { matchedCount, upsertedCount, modifiedCount } = updateResult;
-        logger.logDebug(`#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}`, {
+        logger.logDebug("", {
             title: `${this.className}.markFlag - ${type}`,
-            subject: roundSummariesCollection.namespace,
+            subject: `#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}   (${roundSummariesCollection.namespace})`,
         });
     }
 
@@ -97,15 +97,18 @@ export class SummaryTimeExecutor {
         const doFlag = `__archive.do_${type}`;
 
         const roundSummariesCollection = this.getCollection(this.roundSummariesNamespace);
-        const updateResult = await roundSummariesCollection.updateMany({ [doFlag]: true }, [{ $set: { [doFlag]: "$$REMOVE", [flag]: true } }]);
-        const { matchedCount, upsertedCount, modifiedCount } = updateResult;
-        logger.logDebug(`#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}`, {
+        const { matchedCount, upsertedCount, modifiedCount } = await roundSummariesCollection.updateMany({ [doFlag]: true }, [{ $set: { [doFlag]: "$$REMOVE", [flag]: true } }]);
+
+        logger.logDebug("", {
             title: `${this.className}.updateFlag - ${type}`,
-            subject: roundSummariesCollection.namespace,
+            subject: `#-${matchedCount}  U-${upsertedCount}  M-${modifiedCount}   (${roundSummariesCollection.namespace})`,
         });
     }
 
     protected handleError(error: unknown, component: string): void {
+        if (error instanceof MongoServerError) {
+            delete error.stack;
+        }
         logger.logError(`${this.className}.${component}`, error);
     }
 
@@ -126,7 +129,7 @@ export class SummaryTimeExecutor {
             return false;
         }
 
-        emitter.addListener(event, this.execute);
+        emitter.removeListener(event, this.execute);
         this.emitters.delete(emitter);
         return true;
     }

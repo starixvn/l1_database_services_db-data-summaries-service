@@ -45,7 +45,7 @@ export class SummaryTimeInitiator extends TypedEventEmitter<SummaryTimeInitiator
             return false;
         }
 
-        scheduler.addListener("SUMMARY_TIME", this.initialSummary);
+        scheduler.removeListener("SUMMARY_TIME", this.initialSummary);
         this.schedulers.delete(scheduler);
         return true;
     }

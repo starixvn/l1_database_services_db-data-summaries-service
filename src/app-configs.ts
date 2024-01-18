@@ -5,8 +5,8 @@ import { SERVICE_VERSION } from "./service-version";
 
 const db = {
     credential: "lmn_summary:LmnSummary",
-    server: "10.10.50.12:39200,10.10.50.13:39200,10.10.50.14:39200",
-    replSet: "L2Local",
+    server: "10.10.50.12:39202,10.10.50.13:39202,10.10.50.14:39202",
+    replSet: "L2ppLocal",
 };
 const appName = encodeURI("Data Summaries DevMode");
 
