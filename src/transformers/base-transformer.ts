@@ -86,7 +86,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         } = summaryConfig;
 
         const ticketCollection = getCollection(this.mongoClient, this.ticketSummariesNamespace);
-        const pipeline: Document[] = roundSummaryPipelineFactory(summaryConfig, this.roundSummariesNamespace);
+        const pipeline: Document[] = roundSummaryPipelineFactory(summaryConfig, this.ticketSummariesNamespace, this.roundSummariesNamespace);
 
         await this.setDoSummaryFlag(ticketCollection, gameId);
         await ticketCollection.aggregate(pipeline, aggregateOptions).tryNext();
@@ -131,18 +131,18 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         });
     }
 
-    protected async removeDoSummaryFlag(roundCollection: Collection, timeField: string, gameId?: number) {
+    protected async removeDoSummaryFlag(collection: Collection, timeField: string, gameId?: number) {
         const warmingTime = new Date(Date.now() - 3_600_000);
 
-        const { matchedCount: matchedUpdated, modifiedCount: modifiedUpdated } = await roundCollection.updateMany(
+        const { matchedCount: matchedUpdated, modifiedCount: modifiedUpdated } = await collection.updateMany(
             { [DO_FLAG]: true, gameId, [timeField]: { $lt: warmingTime } },
             { $set: { [DONE_FLAG]: true } }
         );
-        const { matchedCount: matchedRemoved, modifiedCount: modifiedRemoved } = await roundCollection.updateMany({ [DO_FLAG]: true, gameId }, { $unset: { [DO_FLAG]: 1 } });
+        const { matchedCount: matchedRemoved, modifiedCount: modifiedRemoved } = await collection.updateMany({ [DO_FLAG]: true, gameId }, { $unset: { [DO_FLAG]: 1 } });
 
         this.logger.logDebug("", {
             title: this.className,
-            subject: `+++ #=${matchedUpdated} M=${modifiedUpdated} +++   --- #=${matchedRemoved} M=${modifiedRemoved} ---   (${roundCollection.namespace})`,
+            subject: `+++ #=${matchedUpdated} M=${modifiedUpdated} +++   --- #=${matchedRemoved} M=${modifiedRemoved} ---   (${collection.namespace})`,
         });
     }
 
