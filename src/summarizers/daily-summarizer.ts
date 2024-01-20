@@ -19,7 +19,7 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
     {
         $lookup: {
             from: sourceCollectionName,
-            localfield: "_id.gameId",
+            localField: "_id.gameId",
             foreignField: "gameId",
             let: { time: "$_id.time", timeTo: "$_id.timeTo", currency: "$_id.currency", operatorId: "$_id.operatorId", siteId: "$_id.siteId" },
             pipeline: [
