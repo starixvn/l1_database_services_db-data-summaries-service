@@ -67,7 +67,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
     protected async runTransform(summaryConfig: SC) {
         const aggregateOptions: AggregateOptions = { allowDiskUse: true };
         const {
-            aliases: { time },
+            aliases: { time, settled },
         } = summaryConfig;
 
         const sourceCollection = this.getSourceCollection(summaryConfig);
@@ -75,14 +75,14 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
 
         await this.setDoSummaryFlag(sourceCollection);
         await sourceCollection.aggregate(pipeline, aggregateOptions).tryNext();
-        await this.removeDoSummaryFlag(sourceCollection, time);
+        await this.removeDoSummaryFlag(sourceCollection, time, settled);
     }
 
     protected async runSummary(summaryConfig: SC) {
         const aggregateOptions: AggregateOptions = { allowDiskUse: true };
         const {
             gameConfigs: { gameId },
-            aliases: { time },
+            aliases: { time, settled },
         } = summaryConfig;
 
         const ticketCollection = getCollection(this.mongoClient, this.ticketSummariesNamespace);
@@ -90,7 +90,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
 
         await this.setDoSummaryFlag(ticketCollection, gameId);
         await ticketCollection.aggregate(pipeline, aggregateOptions).tryNext();
-        await this.removeDoSummaryFlag(ticketCollection, time, gameId);
+        await this.removeDoSummaryFlag(ticketCollection, time, settled, gameId);
     }
 
     protected prepareTransformPipeline(summaryConfig: SC) {
@@ -131,11 +131,11 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         });
     }
 
-    protected async removeDoSummaryFlag(collection: Collection, timeField: string, gameId?: number) {
+    protected async removeDoSummaryFlag(collection: Collection, timeField: string, settledField: string, gameId?: number) {
         const warmingTime = new Date(Date.now() - 3_600_000);
 
         const { matchedCount: matchedUpdated, modifiedCount: modifiedUpdated } = await collection.updateMany(
-            { [DO_FLAG]: true, gameId, [timeField]: { $lt: warmingTime } },
+            { [DO_FLAG]: true, gameId, [timeField]: { $lt: warmingTime }, [settledField]: true },
             { $set: { [DONE_FLAG]: true } }
         );
         const { matchedCount: matchedRemoved, modifiedCount: modifiedRemoved } = await collection.updateMany({ [DO_FLAG]: true, gameId }, { $unset: { [DO_FLAG]: 1 } });
