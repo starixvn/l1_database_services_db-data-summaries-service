@@ -2,7 +2,7 @@ import { SERVICE_VERSION } from "./service-version";
 
 const db = {
     credential: "lmn_summary:gyi%2B%5D2%7Cs%3EH1vGL1S%2BNKrklM%7BaB*%3E%5Dz%26p",
-    server: "10.99.99.54:27101,10.99.99.53:27102",
+    server: "10.99.99.53:39110,10.99.99.54:39110,10.99.99.188:39110,10.99.99.187:39110",
     replSet: "SabaMain",
 };
 const appName = encodeURI("Data Summaries Service");

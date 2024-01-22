@@ -2,7 +2,7 @@ import { SERVICE_VERSION } from "./service-version";
 
 const db = {
     credential: `lmn_summary:${encodeURIComponent("LmnSummary@22027")}`,
-    server: "10.99.99.187:27201",
+    server: "10.99.99.53:39120,10.99.99.54:39120,10.99.99.188:39120,10.99.99.187:39120",
     replSet: "SabaUAT",
 };
 const appName = encodeURI("Data Summaries Service");
