@@ -29,7 +29,7 @@ export const skynexOptions = {
     conversationIds: { NotiChannel: -1001964283718 },
     proxy: {
         protocol: "http",
-        host: "10.2.252.100",
+        host: "lisasqd-dev.nebula.prod",
         port: 8801,
     },
 };
