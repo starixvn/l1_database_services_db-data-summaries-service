@@ -10,6 +10,8 @@ type Events<SC extends SummaryConfig> = SC["_brand"];
 type EventDescriptions<SC extends SummaryConfig> = Record<Events<SC>, (config: SC) => MaybePromise<void>>;
 export type PipelineFactory<SC extends SummaryConfig> = (...args: [SC]) => Document[];
 
+const ONE_HOUR_AGO = new Date(Date.now() - 3_600_000);
+
 export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<SC>, EventDescriptions<SC>> {
     private readonly flags: Map<string, boolean> = new Map();
 
@@ -31,11 +33,23 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         return this.pipelineFactory(summaryConfig);
     }
 
+    protected getColl(namespace: ChangeStreamNameSpace) {
+        return getCollection(this.mongoClient, namespace);
+    }
+
     protected getSourceCollection(summaryConfig: SummaryConfig) {
         const { _brand, coll } = summaryConfig;
         const namespace = _brand === "bet" ? coll.bet : coll.round;
 
-        return getCollection(this.mongoClient, namespace);
+        return this.getColl(namespace);
+    }
+
+    protected getRoundCollection(summaryConfig: SummaryConfig) {
+        const {
+            coll: { round },
+        } = summaryConfig;
+
+        return this.getColl(round);
     }
 
     protected getFlag(summaryConfig: SC) {
@@ -68,21 +82,31 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         const aggregateOptions: AggregateOptions = { allowDiskUse: true };
         const {
             aliases: { time, settled },
+            calc: { roundId },
         } = summaryConfig;
 
         const sourceCollection = this.getSourceCollection(summaryConfig);
+        const roundCollection = this.getRoundCollection(summaryConfig);
         const pipeline = this.prepareTransformPipeline(summaryConfig);
 
         await this.setDoSummaryFlag(sourceCollection);
         await sourceCollection.aggregate(pipeline, aggregateOptions).tryNext();
-        await this.removeDoSummaryFlag(sourceCollection, time, settled);
+
+        const timeFilter = { [time]: { $lt: ONE_HOUR_AGO } };
+        const warmingRound = await roundCollection
+            .aggregate([{ $match: { [DO_FLAG]: true, ...timeFilter } }, { $project: { _id: roundId } }, { $sort: { _id: -1 } }, { $limit: 1 }])
+            .map((_) => _._id)
+            .toArray();
+        const roundFilter = warmingRound.length ? { $expr: { $lt: [roundId, { $literal: warmingRound[0] }] } } : timeFilter;
+        const doneFilter = { ...roundFilter, [settled]: true };
+        await this.removeDoSummaryFlag(sourceCollection, doneFilter);
     }
 
     protected async runSummary(summaryConfig: SC) {
         const aggregateOptions: AggregateOptions = { allowDiskUse: true };
         const {
             gameConfigs: { gameId },
-            aliases: { time, settled },
+            aliases: { time },
         } = summaryConfig;
 
         const ticketCollection = getCollection(this.mongoClient, this.ticketSummariesNamespace);
@@ -90,7 +114,14 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
 
         await this.setDoSummaryFlag(ticketCollection, gameId);
         await ticketCollection.aggregate(pipeline, aggregateOptions).tryNext();
-        await this.removeDoSummaryFlag(ticketCollection, time, settled, gameId);
+
+        const timeFilter = { [time]: { $lt: ONE_HOUR_AGO } };
+        const warmingRound = await ticketCollection
+            .aggregate([{ $match: { [DO_FLAG]: true, ...timeFilter } }, { $project: { _id: "$roundId" } }, { $sort: { _id: -1 } }, { $limit: 1 }])
+            .map((_) => _._id)
+            .toArray();
+        const doneFilter = warmingRound.length ? { $expr: { $lt: ["$roundId", { $literal: warmingRound[0] }] } } : timeFilter;
+        await this.removeDoSummaryFlag(ticketCollection, doneFilter, gameId);
     }
 
     protected prepareTransformPipeline(summaryConfig: SC) {
@@ -131,11 +162,9 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         });
     }
 
-    protected async removeDoSummaryFlag(collection: Collection, timeField: string, settledField: string, gameId?: number) {
-        const warmingTime = new Date(Date.now() - 3_600_000);
-
+    protected async removeDoSummaryFlag(collection: Collection, doneFilter: Document, gameId?: number) {
         const { matchedCount: matchedUpdated, modifiedCount: modifiedUpdated } = await collection.updateMany(
-            { [DO_FLAG]: true, gameId, [timeField]: { $lt: warmingTime }, [settledField]: true },
+            { [DO_FLAG]: true, ...doneFilter, gameId },
             { $set: { [DONE_FLAG]: true } }
         );
         const { matchedCount: matchedRemoved, modifiedCount: modifiedRemoved } = await collection.updateMany({ [DO_FLAG]: true, gameId }, { $unset: { [DO_FLAG]: 1 } });
