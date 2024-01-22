@@ -1,6 +1,6 @@
 {
     "name": "db-data-summaries-service",
-    "version": "2.1.3",
+    "version": "2.1.4",
     "license": "ISC",
     "type": "module",
     "scripts": {
