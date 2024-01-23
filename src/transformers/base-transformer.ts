@@ -105,33 +105,43 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
 
     protected async runTransform(summaryConfig: SC) {
         const aggregateOptions: AggregateOptions = { allowDiskUse: true };
-        const {
-            aliases: { time, settled },
-            calc: { roundId },
-        } = summaryConfig;
 
         const sourceCollection = this.getSourceCollection(summaryConfig);
-        const roundCollection = this.getRoundCollection(summaryConfig);
         const pipeline = this.prepareTransformPipeline(summaryConfig);
 
         await this.setDoSummaryFlag(sourceCollection);
         await sourceCollection.aggregate(pipeline, aggregateOptions).tryNext();
 
+        const doneFilter = this.buildTransfromDoneFilter(summaryConfig);
+        await this.removeDoSummaryFlag(sourceCollection, doneFilter);
+    }
+
+    protected async buildTransfromDoneFilter(summaryConfig: SC): Promise<Document> {
+        const {
+            _brand,
+            aliases,
+            calc: { roundId: roundCalc },
+        } = summaryConfig;
+        const time = aliases.time;
+        const settled = aliases.settled;
+        const roundId = _brand === "round" ? roundCalc : `$${aliases.foreign}`;
+
+        const roundCollection = this.getRoundCollection(summaryConfig);
         const timeFilter = { [time]: { $lt: new Date(Date.now() - 3_600_000) } };
         const warmingRound = await roundCollection
-            .aggregate([{ $match: { [DO_FLAG]: true, ...timeFilter } }, { $project: { _id: roundId } }, { $sort: { _id: -1 } }, { $limit: 1 }])
-            .map((_) => _._id)
+            .aggregate([{ $match: { [DO_FLAG]: true, ...timeFilter } }, { $project: { _id: 0, data: roundCalc } }, { $sort: { data: -1 } }, { $limit: 1 }])
+            .map((_) => _.data)
             .toArray();
         const roundFilter = warmingRound.length ? { $expr: { $lt: [roundId, { $literal: warmingRound[0] }] } } : timeFilter;
         const doneFilter = { ...roundFilter, [settled]: true };
-        await this.removeDoSummaryFlag(sourceCollection, doneFilter);
+
+        return doneFilter;
     }
 
     protected async runSummary(summaryConfig: SC) {
         const aggregateOptions: AggregateOptions = { allowDiskUse: true };
         const {
             gameConfigs: { gameId },
-            aliases: { time },
         } = summaryConfig;
 
         const ticketCollection = getCollection(this.mongoClient, this.ticketSummariesNamespace);
@@ -140,13 +150,19 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         await this.setDoSummaryFlag(ticketCollection, gameId);
         await ticketCollection.aggregate(pipeline, aggregateOptions).tryNext();
 
-        const timeFilter = { [time]: { $lt: new Date(Date.now() - 3_600_000) } };
+        const doneFilter = await this.buildSummaryDoneFilter(ticketCollection);
+        await this.removeDoSummaryFlag(ticketCollection, doneFilter, gameId);
+    }
+
+    protected async buildSummaryDoneFilter(ticketCollection: Collection): Promise<Document> {
+        const timeFilter = { time: { $lt: new Date(Date.now() - 3_600_000) } };
         const warmingRound = await ticketCollection
-            .aggregate([{ $match: { [DO_FLAG]: true, gameId, ...timeFilter } }, { $project: { _id: "$roundId" } }, { $sort: { _id: -1 } }, { $limit: 1 }])
-            .map((_) => _._id)
+            .aggregate([{ $match: { [DO_FLAG]: true, ...timeFilter } }, { $project: { _id: 0, data: "$roundId" } }, { $sort: { data: -1 } }, { $limit: 1 }])
+            .map((_) => _.data)
             .toArray();
         const doneFilter = warmingRound.length ? { $expr: { $lt: ["$roundId", { $literal: warmingRound[0] }] } } : timeFilter;
-        await this.removeDoSummaryFlag(ticketCollection, doneFilter, gameId);
+
+        return doneFilter;
     }
 
     protected async setDoSummaryFlag(collection: Collection, gameId?: number) {
