@@ -150,14 +150,14 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         await this.setDoSummaryFlag(ticketCollection, gameId);
         await ticketCollection.aggregate(pipeline, aggregateOptions).tryNext();
 
-        const doneFilter = await this.buildSummaryDoneFilter(ticketCollection);
+        const doneFilter = await this.buildSummaryDoneFilter(ticketCollection, gameId);
         await this.removeDoSummaryFlag(ticketCollection, doneFilter, gameId);
     }
 
-    protected async buildSummaryDoneFilter(ticketCollection: Collection): Promise<Document> {
+    protected async buildSummaryDoneFilter(ticketCollection: Collection, gameId: unknown): Promise<Document> {
         const timeFilter = { time: { $lt: new Date(Date.now() - 3_600_000) } };
         const warmingRound = await ticketCollection
-            .aggregate([{ $match: { [DO_FLAG]: true, ...timeFilter } }, { $project: { _id: 0, data: "$roundId" } }, { $sort: { data: -1 } }, { $limit: 1 }])
+            .aggregate([{ $match: { [DO_FLAG]: true, gameId, ...timeFilter } }, { $project: { _id: 0, data: "$roundId" } }, { $sort: { data: -1 } }, { $limit: 1 }])
             .map((_) => _.data)
             .toArray();
         const doneFilter = warmingRound.length ? { $expr: { $lt: ["$roundId", { $literal: warmingRound[0] }] } } : timeFilter;
