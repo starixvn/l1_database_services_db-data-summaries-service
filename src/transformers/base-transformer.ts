@@ -1,6 +1,5 @@
 import { MaybePromise } from "@ldb/types";
 import { AggregateOptions, ChangeStreamNameSpace, Collection, Document, MongoClient, MongoServerError } from "mongodb";
-import { inspect } from "util";
 import { roundSummaryPipelineFactory } from "../consts/round-summary-pipeline";
 import { DONE_FLAG, DO_FLAG } from "../consts/summaryFlags";
 import { Subsciber } from "../modules/subscriber";
@@ -178,7 +177,6 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
     }
 
     protected async removeDoSummaryFlag(collection: Collection, doneFilter: Document, gameId?: number) {
-        console.log(new Date().toISOString(), collection.collectionName, inspect({ [DO_FLAG]: true, gameId, ...doneFilter }, false, null, true));
         const { matchedCount: matchedUpdated, modifiedCount: modifiedUpdated } = await collection.updateMany(
             { [DO_FLAG]: true, gameId, ...doneFilter },
             { $set: { [DONE_FLAG]: true } }
