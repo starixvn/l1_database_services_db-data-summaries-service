@@ -112,7 +112,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         await this.setDoSummaryFlag(sourceCollection);
         await sourceCollection.aggregate(pipeline, aggregateOptions).tryNext();
 
-        const doneFilter = this.buildTransfromDoneFilter(summaryConfig);
+        const doneFilter = await this.buildTransfromDoneFilter(summaryConfig);
         await this.removeDoSummaryFlag(sourceCollection, doneFilter);
     }
 
