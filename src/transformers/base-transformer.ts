@@ -129,7 +129,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         const roundCollection = this.getRoundCollection(summaryConfig);
         const timeFilter = { [time]: { $lt: new Date(Date.now() - 3_600_000) } };
         const warmingRound = await roundCollection
-            .aggregate([{ $match: { [DO_FLAG]: true, ...timeFilter } }, { $project: { _id: 0, data: roundCalc } }, { $sort: { data: -1 } }, { $limit: 1 }])
+            .aggregate([{ $match: timeFilter }, { $project: { _id: 0, data: roundCalc } }, { $sort: { data: -1 } }, { $limit: 1 }])
             .map((_) => _.data)
             .toArray();
         const roundFilter = warmingRound.length ? { $expr: { $lt: [roundId, { $literal: warmingRound[0] }] } } : timeFilter;
