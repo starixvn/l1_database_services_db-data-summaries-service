@@ -3,7 +3,7 @@ import { ChangeStreamNameSpace } from "mongodb";
 import { SummaryConfig } from "../types/summary-config";
 import { DO_FLAG } from "./summaryFlags";
 
-export const roundSummaryPipelineFactory = (summaryConfig: SummaryConfig, roundSummariesNamespace: ChangeStreamNameSpace) => {
+export const roundSummaryPipelineFactory = (summaryConfig: SummaryConfig, ticketSummariesNamespace: ChangeStreamNameSpace, roundSummariesNamespace: ChangeStreamNameSpace) => {
     const {
         gameConfigs: { gameId },
         coll: { round },
@@ -17,17 +17,47 @@ export const roundSummaryPipelineFactory = (summaryConfig: SummaryConfig, roundS
                 _id: {
                     gameId: "$gameId",
                     roundId: "$roundId",
-                    currency: { $ifNull: ["$currency", ""] },
-                    operatorId: { $ifNull: ["$operatorId", ""] },
-                    siteId: { $ifNull: ["$siteId", ""] },
+                    currency: "$currency",
+                    operatorId: "$operatorId",
+                    siteId: "$siteId",
                 },
-                time: { $min: "$time" },
-                tickets: { $sum: "$tickets" },
-                stake: { $sum: "$stake" },
-                payout: { $sum: "$payout" },
-                winloss: { $sum: "$winloss" },
-                refund: { $sum: "$refund" },
-                playerIds: { $addToSet: "$playerId" },
+            },
+        },
+        {
+            $lookup: {
+                from: ticketSummariesNamespace.coll,
+                localField: "_id.gameId",
+                foreignField: "gameId",
+                let: { roundId: "$_id.roundId", operatorId: "$_id.operatorId", siteId: "$_id.siteId", currency: "$_id.currency" },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $eq: ["$roundId", "$$roundId"] },
+                                    { $eq: ["$operatorId", "$$operatorId"] },
+                                    { $eq: ["$siteId", "$$siteId"] },
+                                    { $eq: ["$currency", "$$currency"] },
+                                ],
+                            },
+                        },
+                    },
+                    { $project: { _id: 0, time: 1, tickets: 1, stake: 1, payout: 1, winloss: 1, refund: 1, playerId: 1 } },
+                ],
+                as: "silo",
+            },
+        },
+        { $unwind: "$silo" },
+        {
+            $group: {
+                _id: "$_id",
+                time: { $min: "$silo.time" },
+                tickets: { $sum: "$silo.tickets" },
+                stake: { $sum: "$silo.stake" },
+                payout: { $sum: "$silo.payout" },
+                winloss: { $sum: "$silo.winloss" },
+                refund: { $sum: "$silo.refund" },
+                playerIds: { $addToSet: "$silo.playerId" },
             },
         },
         {
@@ -45,10 +75,10 @@ export const roundSummaryPipelineFactory = (summaryConfig: SummaryConfig, roundS
             $project: {
                 _id: 0,
                 time: "$time",
-                currency: "$_id.currency",
+                currency: { $ifNull: ["$_id.currency", { $literal: "" }] },
                 gameId: "$_id.gameId",
-                operatorId: "$_id.operatorId",
-                siteId: "$_id.siteId",
+                operatorId: { $ifNull: ["$_id.operatorId", { $literal: "" }] },
+                siteId: { $ifNull: ["$_id.siteId", { $literal: "" }] },
                 roundId: "$_id.roundId",
                 tickets: "$tickets",
                 stake: "$stake",

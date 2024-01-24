@@ -2,7 +2,7 @@ import { SERVICE_VERSION } from "./service-version";
 
 const db = {
     credential: `lmn_summary:${encodeURIComponent("LmnSummary@517")}`,
-    server: "10.99.99.187:27301",
+    server: "10.99.99.53:39130,10.99.99.54:39130,10.99.99.188:39130,10.99.99.187:39130",
     replSet: "SabaSIT",
 };
 const appName = encodeURI("Data Summaries Service");
@@ -29,7 +29,7 @@ export const skynexOptions = {
     conversationIds: { NotiChannel: -1001964283718 },
     proxy: {
         protocol: "http",
-        host: "10.2.252.100",
+        host: "lisasqd-dev.nebula.prod",
         port: 8801,
     },
 };

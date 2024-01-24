@@ -19,7 +19,9 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
     {
         $lookup: {
             from: sourceCollectionName,
-            let: { time: "$_id.time", timeTo: "$_id.timeTo", currency: "$_id.currency", gameId: "$_id.gameId", operatorId: "$_id.operatorId", siteId: "$_id.siteId" },
+            localField: "_id.gameId",
+            foreignField: "gameId",
+            let: { time: "$_id.time", timeTo: "$_id.timeTo", currency: "$_id.currency", operatorId: "$_id.operatorId", siteId: "$_id.siteId" },
             pipeline: [
                 {
                     $match: {
@@ -28,7 +30,6 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
                                 { $gte: ["$time", "$$time"] },
                                 { $lt: ["$time", "$$timeTo"] },
                                 { $eq: ["$currency", "$$currency"] },
-                                { $eq: ["$gameId", "$$gameId"] },
                                 { $eq: ["$operatorId", "$$operatorId"] },
                                 { $eq: ["$siteId", "$$siteId"] },
                             ],
@@ -51,7 +52,12 @@ const dailyPipelineFactory = (sourceCollectionName: string): Document[] => [
             playerIds: { $addToSet: "$round.playerIds" },
         },
     },
-    { $set: { playerIds: { $reduce: { input: "$playerIds", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } } } },
+    {
+        $set: {
+            playerIds: { $reduce: { input: "$playerIds", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } },
+            siteId: { $ifNull: ["$siteId", { $literal: "" }] },
+        },
+    },
     {
         $project: {
             _id: 0,
