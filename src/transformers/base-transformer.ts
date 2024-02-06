@@ -141,12 +141,13 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         const aggregateOptions: AggregateOptions = { allowDiskUse: true };
         const {
             gameConfigs: { gameId },
+            aliases: { settled },
         } = summaryConfig;
 
         const ticketCollection = getCollection(this.mongoClient, this.ticketSummariesNamespace);
         const pipeline: Document[] = roundSummaryPipelineFactory(summaryConfig, this.ticketSummariesNamespace, this.roundSummariesNamespace);
 
-        await this.setDoSummaryFlag(ticketCollection, gameId);
+        await this.setDoSummaryFlag(ticketCollection, { $expr: { $gt: [{ $toInt: `$${settled}` }, 0] } }, gameId);
         await ticketCollection.aggregate(pipeline, aggregateOptions).tryNext();
 
         const doneFilter = await this.buildSummaryDoneFilter(ticketCollection, gameId);
@@ -154,19 +155,27 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
     }
 
     protected async buildSummaryDoneFilter(ticketCollection: Collection, gameId: unknown): Promise<Document> {
+        /** Only mark done for tickets older than 1 day */
         const timeFilter = { time: { $lt: new Date(Date.now() - 3_600_000) } };
+
+        /**
+         * Tickets in the same round will be marked done or excluded together
+         * Mark done for tickets belong to rounds before this round.
+         */
         const warmingRound = await ticketCollection
             .aggregate([{ $match: { [DO_FLAG]: true, gameId, ...timeFilter } }, { $project: { _id: 0, data: "$roundId" } }, { $sort: { data: -1 } }, { $limit: 1 }])
             .map((_) => _.data)
             .toArray();
-        const doneFilter = warmingRound.length ? { $expr: { $lt: ["$roundId", { $literal: warmingRound[0] }] } } : timeFilter;
+
+        /** If cannot determine the round, use time filter */
+        const doneFilter: Document = warmingRound.length ? { $expr: { $lt: ["$roundId", { $literal: warmingRound[0] }] } } : timeFilter;
 
         return doneFilter;
     }
 
-    protected async setDoSummaryFlag(collection: Collection, gameId?: number) {
+    protected async setDoSummaryFlag(collection: Collection, filter: Document = {}, gameId?: number) {
         const { matchedCount, upsertedCount, modifiedCount } = await collection.updateMany(
-            { $or: [{ [DONE_FLAG]: false }, { [DONE_FLAG]: null }], gameId },
+            { $or: [{ [DONE_FLAG]: false }, { [DONE_FLAG]: null }], gameId, ...filter },
             { $set: { [DO_FLAG]: true } }
         );
 
