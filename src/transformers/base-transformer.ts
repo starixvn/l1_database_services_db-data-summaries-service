@@ -141,13 +141,12 @@ export class BaseTransformer<SC extends SummaryConfig> extends Subsciber<Events<
         const aggregateOptions: AggregateOptions = { allowDiskUse: true };
         const {
             gameConfigs: { gameId },
-            aliases: { settled },
         } = summaryConfig;
 
         const ticketCollection = getCollection(this.mongoClient, this.ticketSummariesNamespace);
         const pipeline: Document[] = roundSummaryPipelineFactory(summaryConfig, this.ticketSummariesNamespace, this.roundSummariesNamespace);
 
-        await this.setDoSummaryFlag(ticketCollection, { $expr: { $gt: [{ $toInt: `$${settled}` }, 0] } }, gameId);
+        await this.setDoSummaryFlag(ticketCollection, {}, gameId);
         await ticketCollection.aggregate(pipeline, aggregateOptions).tryNext();
 
         const doneFilter = await this.buildSummaryDoneFilter(ticketCollection, gameId);
