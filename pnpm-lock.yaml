@@ -21,8 +21,8 @@ dependencies:
     specifier: ^1.0.8
     version: 1.0.8
   '@sc-logger/terminal':
-    specifier: ^1.0.4
-    version: 1.0.4
+    specifier: 1.0.5
+    version: 1.0.5
   awilix:
     specifier: ^10.0.2
     version: 10.0.2
@@ -941,8 +941,8 @@ packages:
       '@jridgewell/sourcemap-codec': 1.4.15
     dev: true
 
-  /@ldb/ansi-esc@1.0.0:
-    resolution: {integrity: sha512-JrKF7Fj/2cV39o+aGKAMCH+eSPNaoTA+ZfcKBgCZ+MAwUIQya/pxpE6A1/4fZNgGCXfEQapeKj4GPjhDxhtkGA==}
+  /@ldb/ansi-esc@0.1.0:
+    resolution: {integrity: sha512-Xy3C1W/KzPhBaQYnAnaeV3LJdFy6+Imz7kOFS5j9XnDlSVjfcLUPRIvi1hyzCcH669hIoP7CoAhTlOjGIpwjyA==}
     dev: false
 
   /@ldb/scheduler@1.0.1:
@@ -960,10 +960,10 @@ packages:
       - socks
     dev: false
 
-  /@ldb/terminal-paint@1.0.0:
-    resolution: {integrity: sha512-7o5xPsm3YoOF3Ke4CPMHDIPpteiEZzeT9gjZxEcFOcgNDdqlyHuhxo9lvU3ey8WEiywFmp0VLwsGCREUnmPC2A==}
+  /@ldb/terminal-paint@1.0.1:
+    resolution: {integrity: sha512-Pj3aGtLpN+WX6SU2SJAgBAb23BaDLTX7eOLoesmHCNRTOAvu+IUtiGfbaYP/VSkKVsApeqxn5T3beSWeDYY5Gg==}
     dependencies:
-      '@ldb/ansi-esc': 1.0.0
+      '@ldb/ansi-esc': 0.1.0
     dev: false
 
   /@ldb/types@1.0.5:
@@ -1039,10 +1039,10 @@ packages:
       - supports-color
     dev: false
 
-  /@sc-logger/terminal@1.0.4:
-    resolution: {integrity: sha512-mtFIXi5LrzUjdy7lv6vKBmDBwLtEQlS7AN4NaJFOiihYeHx5hyw7Q4oXvbS1nzgP4TI7QAvZKR/65YDnPx+ccw==}
+  /@sc-logger/terminal@1.0.5:
+    resolution: {integrity: sha512-NF7NPVXUxfdbUW/D6I05PhW5XPB8TJzxWMMmlhn+BVzIIF2k1SG2mCi8unDErGOXcmGKSFmlNez/x7/6zJ8EkQ==}
     dependencies:
-      '@ldb/terminal-paint': 1.0.0
+      '@ldb/terminal-paint': 1.0.1
       '@ldb/utils': 0.1.2
       '@sc-logger/types': 1.0.1
     dev: false
