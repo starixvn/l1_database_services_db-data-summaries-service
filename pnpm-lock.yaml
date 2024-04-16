@@ -21,7 +21,7 @@ dependencies:
     specifier: ^1.0.8
     version: 1.0.8
   '@sc-logger/terminal':
-    specifier: 1.0.5
+    specifier: ^1.0.5
     version: 1.0.5
   awilix:
     specifier: ^10.0.2
