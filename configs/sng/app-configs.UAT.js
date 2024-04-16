@@ -1,7 +1,7 @@
 import { SERVICE_VERSION } from "./service-version";
 
 const db = {
-    credential: `lmn_summary:${encodeURIComponent("LmnSummary@517")}`,
+    credential: `lmn_summary:${encodeURIComponent("LmnSummary@22027")}`,
     server: "10.99.99.53:39420,10.99.99.54:39420,10.99.99.188:39420,10.99.99.187:39420",
     replSet: "SN-UAT",
 };
