@@ -1,7 +1,6 @@
 import { stringify } from "@ldb/utils";
 import { SentryLogger } from "@sc-logger/sentry";
 import { SkynexLogger } from "@sc-logger/skynex";
-import { TerminalLogger } from "@sc-logger/terminal";
 import { sentryOptions, skynexOptions } from "./app-configs";
 
 export const LoggerMask = {
@@ -16,14 +15,13 @@ export const skynex = new SkynexLogger(skynexOptions);
 
 const { NODE_ENV: nodeEnv = "DEVELOPMENT" } = process.env;
 const defaultSeverityLevel = nodeEnv === "DEVELOPMENT" ? "debug" : "log";
-export const terminal = new TerminalLogger(defaultSeverityLevel);
 
 export const logger = {
-    logDebug(...args: Parameters<TerminalLogger["logDebug"]>) {
-        terminal.logDebug(...args);
+    logDebug(...args: unknown[]) {
+        console.log(new Date().toISOString(), ...args);
     },
     logInfo(component: string, message: string, manual: boolean, extra: Record<string, unknown> = {}) {
-        terminal.logInfo("", { title: component, subject: message.replace(/`/g, "") });
+        console.log(new Date().toISOString(), { title: component, subject: message.replace(/`/g, "") });
 
         if (!manual) {
             skynex.logInfo(message);
@@ -31,11 +29,11 @@ export const logger = {
         }
     },
     logWarning(component: string, message: string) {
-        terminal.logWarning("", { title: component, subject: message });
+        console.log(new Date().toISOString(), { title: component, subject: message });
     },
     logError(component: string, error: unknown, extra: Record<string, unknown> = {}, mask: number = LoggerMask.SENTRY | LoggerMask.SKYNEX) {
         const tags = { title: component };
-        terminal.logError(error, tags);
+        console.log(new Date().toISOString(), error, tags);
 
         if (mask & LoggerMask.SENTRY) {
             sentry.logError(error, { tags, extra });
@@ -48,7 +46,7 @@ export const logger = {
     },
     logFatal(component: string, error: unknown, extra: Record<string, unknown> = {}, mask: number = LoggerMask.SENTRY | LoggerMask.SKYNEX) {
         const tags = { title: component };
-        terminal.logFatal(error, tags);
+        console.log(new Date().toISOString(), error, tags);
 
         if (mask & LoggerMask.SENTRY) {
             sentry.logFatal(error, { tags, extra });

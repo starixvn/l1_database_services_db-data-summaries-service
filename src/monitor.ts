@@ -1,6 +1,6 @@
 import { Scheduler } from "@ldb/scheduler";
 import { stringify, waitMs } from "@ldb/utils";
-import { logger, terminal } from "./loggers";
+import { logger } from "./loggers";
 import { SummaryRoundInitiator } from "./modules/summary-round-initiator";
 import { SummaryTimeInitiator } from "./modules/summary-time-initiator";
 import { DailySummarizer } from "./summarizers/daily-summarizer";
@@ -61,7 +61,7 @@ export class Monitor {
         this.scheduler.emit("SUMMARY_ROUND");
         this.scheduler.emit("SUMMARY_TIME");
 
-        terminal.logInfo("The monitor has run!");
+        console.log(new Date().toISOString(), "The monitor has run!");
     }
 
     private async devMode() {
@@ -69,6 +69,6 @@ export class Monitor {
         this.scheduler.on("SUMMARY_TIME", this.devEventLogger.bind(this, this.scheduler.constructor.name, "SUMMARY_TIME"));
     }
     private devEventLogger(title: string, subject: string, ...args: unknown[]) {
-        terminal.logDebug(args.map((arg) => stringify(arg)).join("\n"), { title, subject });
+        console.log(new Date().toISOString(), stringify(args), { title, subject });
     }
 }

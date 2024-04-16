@@ -1,9 +1,5 @@
-import { stringify } from "@ldb/utils";
-import { TerminalLogger } from "@sc-logger/terminal";
 import http, { IncomingMessage, Server, ServerResponse } from "http";
 import { RequestOptions } from "https";
-
-const terminal = new TerminalLogger();
 
 export class HealthCheckServer {
     readonly server: Server;
@@ -19,13 +15,10 @@ export class HealthCheckServer {
     private static handleHealthCheckResponse(res: IncomingMessage) {
         const { statusCode } = res;
 
-        terminal.logInfo("", { title: "STATUS", subject: stringify(statusCode) });
-
         process.exitCode = statusCode === 200 ? 0 : 1;
         process.exit();
     }
     private static handleHealthCheckError(error: Error) {
-        terminal.logError(error);
         process.exit(1);
     }
 
@@ -43,9 +36,7 @@ export class HealthCheckServer {
         this.handleRequest = this.handleRequest.bind(this);
     }
 
-    private handleListening() {
-        terminal.logInfo("", { title: "HealthCheckServer", subject: `Server started on port ${this.port}!` });
-    }
+    private handleListening() {}
 
     private handleRequest(req: IncomingMessage, res: ServerResponse) {
         res.end("Data Summaries");
