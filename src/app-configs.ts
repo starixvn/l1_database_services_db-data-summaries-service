@@ -1,39 +1,42 @@
-import { SchedulerConfigs } from "@ldb/scheduler";
-import { NodeOptions } from "@sc-logger/sentry";
-import { SkynexConfigs } from "@sc-logger/skynex";
-import { SERVICE_VERSION } from "./service-version";
+import type { SeverityLevel } from "@ldb/base-logger";
+import type { NodeOptions, SentryOptions } from "@ldb/sentry-logger";
+import type { SkynexOptions } from "@ldb/skynex-logger";
+import { name, version } from "./metadata.js";
+import type { SchedulerConfigs } from "./types/scheduler.js";
 
-const db = {
-    credential: "lmn_summary:LmnSummary",
-    server: "10.10.50.12:39202,10.10.50.13:39202,10.10.50.14:39202",
-    replSet: "L2ppLocal",
-};
-const appName = encodeURI("Data Summaries DevMode");
+export const environment = "DEV" as const;
+export const healthcheckPort = 5000 as const;
 
-const environment = "LOCAL-DEV";
-
-export const eventConfigs: SchedulerConfigs = {
-    SUMMARY_ROUND: 60_000,
-    SUMMARY_TIME: [60_000, 30_000],
-};
-
-export const sentryOptions: NodeOptions = {
+export const sentrySeverityLevel = "warning" as const satisfies SeverityLevel;
+export const sentryNodeOptions = {
     dsn: "https://098a0c6ad1d74e8eb39ec7df895e59e0@sentry.lumigame.com/76",
     environment,
     initialScope: {
-        tags: { service: "data-summaries" },
+        tags: { service: name },
     },
-    release: `data-summaries-service@${SERVICE_VERSION}`,
-};
+    release: `${name}@${version}`,
+} as const satisfies NodeOptions;
+export const sentryOptions = {} as const satisfies SentryOptions;
 
-export const skynexOptions: SkynexConfigs = {
-    token: "0A40aOc7CtpzjbBSJu8KNWQRoXyjRvf9",
-    environment,
-    conversationIds: { NotiChannel: -1001911631568 },
-};
+export const skynexSeverityLevel = "warning" as const satisfies SeverityLevel;
+export const skynexOptions = {
+    conversationIds: {
+        telegram: -1001911631568,
+        teams: "19:11eb3bf6c3c240fd993eb8048615835c@thread.tacv2",
+    },
+} as const satisfies SkynexOptions;
 
-export const hostingPort = 5000;
+export const terminalSeverityLevel = "debug" as const satisfies SeverityLevel;
+
+const dbCred = "lmn_summary:LmnSummary" as const;
+const dbSrv = "10.10.50.12:39100,10.10.50.13:39100,10.10.50.14:39100" as const;
+const dbRepl = "L1Local" as const;
 
 export const database = {
-    url: `mongodb://${db.credential}@${db.server}/admin?authSource=admin&appName=${appName}&replicaSet=${db.replSet}`,
-};
+    targetUrl: `mongodb://${dbCred}@${dbSrv}/admin?authSource=admin&appName=${encodeURIComponent(name)}&replicaSet=${dbRepl}`,
+} as const;
+
+export const eventConfigs = {
+    SUMMARY_ROUND: 60_000,
+    SUMMARY_TIME: [60_000, 30_000],
+} as const satisfies SchedulerConfigs;

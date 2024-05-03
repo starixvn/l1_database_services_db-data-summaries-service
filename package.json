@@ -1,45 +1,41 @@
 {
     "name": "db-data-summaries-service",
-    "version": "2.1.7",
     "license": "ISC",
     "type": "module",
     "scripts": {
-        "modules:backup": "rimraf node_modules_tmp && mv node_modules node_modules_tmp",
-        "modules:restore": "rimraf node_modules && mv node_modules_tmp node_modules",
-        "yarn": "pnpm modules:backup && yarn install && pnpm modules:restore",
-        "test:unit": "NODE_OPTIONS=\"--experimental-vm-modules --es-module-specifier-resolution=node --no-warnings\" jest",
         "test": "NODE_OPTIONS=\"--experimental-vm-modules --es-module-specifier-resolution=node --no-warnings\" jest --testPathPattern=tests/unit-tests/",
         "test-coverage": "NODE_OPTIONS=\"--experimental-vm-modules --es-module-specifier-resolution=node --no-warnings\" jest --collect-coverage --testPathPattern=tests/unit-tests/",
-        "integration-test": "NODE_OPTIONS=\"--experimental-vm-modules --es-module-specifier-resolution=node --no-warnings\" jest --config ./jest.integration-test.config.ts --testPathPattern=tests/integration-tests/",
-        "dev": "pnpm build && NODE_OPTIONS=\"--enable-source-maps --no-warnings --es-module-specifier-resolution=node\" node lib/app.js",
         "build": "rimraf lib && tsc",
-        "reg": "npm set registry http://npm.lumigame.com",
-        "docker:build": "docker build . --tag hub.lumigame.com/ldb/data-summaries-service:${npm_package_version}",
-        "docker:run": "docker run -it --rm --env NODE_ENV=DEVELOPMENT --init hub.lumigame.com/ldb/data-summaries-service:${npm_package_version}"
+        "dev": "NODE_OPTIONS=\"--enable-source-maps --no-warnings --experimental-default-type=module --es-module-specifier-resolution=node\" node lib/index.js"
     },
+    "engines": {
+        "node": ">=18"
+    },
+    "files": [
+        "lib/**"
+    ],
     "dependencies": {
-        "@ldb/scheduler": "^1.0.1",
+        "@ldb/logger": "1.0.0",
+        "@ldb/mongo": "^6.5.0",
+        "@ldb/scheduler": "^2.0.0",
+        "@ldb/sentry-logger": "1.0.0",
+        "@ldb/skynex-logger": "1.0.0",
+        "@ldb/terminal-logger": "1.0.0",
         "@ldb/types": "^1.0.5",
-        "@ldb/utils": "^0.1.2",
-        "@sc-logger/sentry": "^1.0.11",
-        "@sc-logger/skynex": "^1.0.8",
-        "awilix": "^10.0.2",
-        "bson": "^6.6.0",
-        "mongodb": "^6.5.0",
-        "saslprep": "^1.0.3"
+        "awilix": "^10.0.2"
     },
     "devDependencies": {
-        "@commitlint/cli": "^18.6.1",
-        "@commitlint/config-conventional": "^18.6.3",
+        "@commitlint/cli": "^19.3.0",
+        "@commitlint/config-conventional": "^19.2.2",
         "@jest/globals": "^29.7.0",
+        "@ldb/base-logger": "1.0.0",
+        "@tsconfig/node20": "^20.1.4",
         "@types/jest": "^29.5.12",
-        "@types/node": "^20.12.7",
-        "@typescript-eslint/eslint-plugin": "^6.21.0",
-        "@typescript-eslint/parser": "^6.21.0",
+        "@types/node": "^20.12.8",
         "eslint": "^8.57.0",
         "eslint-config-google": "^0.14.0",
         "eslint-config-prettier": "^9.1.0",
-        "eslint-plugin-security": "^2.1.1",
+        "eslint-plugin-security": "^3.0.0",
         "jest": "^29.7.0",
         "jest-extended": "^4.0.2",
         "jest-html-reporters": "^3.1.7",
@@ -47,7 +43,9 @@
         "jest-sonar-reporter": "^2.0.0",
         "rimraf": "^5.0.5",
         "ts-jest": "^29.1.2",
-        "typescript": "^5.4.5"
+        "ts-node": "^10.9.2",
+        "typescript": "^5.4.5",
+        "typescript-eslint": "^7.8.0"
     },
     "jestSonar": {
         "reportPath": "reports",

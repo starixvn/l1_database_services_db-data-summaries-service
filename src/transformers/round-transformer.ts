@@ -1,8 +1,9 @@
-import { ChangeStreamNameSpace, Document, MongoClient } from "mongodb";
-import { DO_FLAG } from "../consts/summaryFlags";
-import { SummaryRoundInitiator } from "../modules/summary-round-initiator";
-import { RoundSummaryConfig } from "../types/summary-config";
-import { BaseTransformer } from "./base-transformer";
+import type { BaseLogger } from "@ldb/base-logger";
+import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
+import { DO_FLAG } from "../consts/summary-flags.js";
+import type { SummaryInitiator } from "../initiators/summary-initiator.js";
+import type { RoundSummaryConfig } from "../types/summary-config.js";
+import { BaseTransformer } from "./base-transformer.js";
 
 const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
     const {
@@ -41,14 +42,14 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
 };
 
 export class RoundTransformer extends BaseTransformer<RoundSummaryConfig> {
-    constructor(mongoClient: MongoClient, ticketSummariesNamespace: ChangeStreamNameSpace, roundSummariesNamespace: ChangeStreamNameSpace) {
-        super(mongoClient, ticketSummariesNamespace, roundSummariesNamespace, pipelineFactory);
+    constructor(mongo: MongoClient, ticketSummariesNamespace: ChangeStreamNameSpace, logger: BaseLogger) {
+        super(mongo, ticketSummariesNamespace, pipelineFactory, logger);
     }
 
-    subscribe(producer: SummaryRoundInitiator): boolean {
-        return super.subscribe(producer, "round", this.execute);
+    subscribe(producer: SummaryInitiator): boolean {
+        return super.subscribe(producer, "round");
     }
-    unsubscribe(producer: SummaryRoundInitiator): boolean {
-        return super.unsubscribe(producer, "round", this.execute);
+    unsubscribe(producer: SummaryInitiator): boolean {
+        return super.unsubscribe(producer, "round");
     }
 }
