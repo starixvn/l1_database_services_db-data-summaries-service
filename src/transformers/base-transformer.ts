@@ -147,8 +147,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
         const warmingRoundFilter = warmingRound.length ? { $expr: { $lt: [roundId, { $literal: warmingRound[0] }] } } : null;
 
         const warmingFilter = warmingRoundFilter ?? warmingTimeFilter;
-        const doneFilter = { ...warmingFilter, [settled]: true };
-        return doneFilter;
+        return { ...warmingFilter, [settled]: true };
     }
 
     private async removeDoSummaryFlag(collection: Collection, doneFilter: Document) {
