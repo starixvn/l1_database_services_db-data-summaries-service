@@ -11,7 +11,14 @@ import {
     parseSummaryConfig,
     throwSummaryConfigError,
 } from "../../../src/helpers/summary-config";
-import type { BetSummaryConfig, RoundSummaryConfig, SchemaBetSummaryConfig, SchemaRoundSummaryConfig, SummaryConfig } from "../../../src/types/summary-config.ts";
+import type {
+    BetSummaryConfig,
+    RoundSummaryConfig,
+    SchemaBetSummaryConfig,
+    SchemaRoundSummaryConfig,
+    SchemaSummaryConfig,
+    SummaryConfig,
+} from "../../../src/types/summary-config.ts";
 
 afterAll(() => {
     jest.clearAllMocks();
@@ -166,6 +173,45 @@ describe("Summary config helpers", () => {
                 expect(parseSummaryConfig(input)).toEqual(expectedOuput);
             }
         });
+        it("Throw if provided invalid input", () => {
+            const testCases = [
+                {
+                    _brand: "",
+                    category: "games",
+                    type: 0,
+                    gameConfigs: { gameId: 0, name: "test" },
+                    db: "minigame",
+                    coll: { bet: "_bets" },
+                    filter: '{"paid":true}',
+                    aliases: { playerId: "playerId", settled: "paid", time: "time" },
+                    calc: {
+                        roundId: '"$id"',
+                        tickets: '{"$literal":1}',
+                        stake: '{"$multiply":["$totalAmount",{"$toInt":{"$not":"$freeSpin"}}]}',
+                        payout: '"$betwin"',
+                        refund: '{"$literal":0}',
+                    },
+                },
+                {
+                    _brand: "",
+                    gameConfigs: { gameId: 0, name: "test" },
+                    db: "minigame",
+                    filter: '{"paid":true}',
+                    aliases: { playerId: "playerId", settled: "paid", time: "time" },
+                    calc: {
+                        roundId: '"$id"',
+                        tickets: '{"$literal":1}',
+                        stake: '{"$multiply":["$totalAmount",{"$toInt":{"$not":"$freeSpin"}}]}',
+                        payout: '"$betwin"',
+                        refund: '{"$literal":0}',
+                    },
+                },
+            ] as unknown as SchemaSummaryConfig[];
+
+            for (const input of testCases) {
+                expect(() => parseSummaryConfig(input)).toThrowError("Invalid summary config schema");
+            }
+        });
     });
 
     describe("[function getSourceNamespace]", () => {
@@ -193,7 +239,7 @@ describe("Summary config helpers", () => {
     });
 
     describe("[function getRoundIdExpr]", () => {
-        it("return calc.roundId", () => {
+        it("Return id expression in _rounds collection", () => {
             const testCases = [
                 [{ _brand: "bet", calc: { roundId: "$id" }, aliases: { foreign: "$roundId" } }, "$id"],
                 [{ _brand: "round", calc: { roundId: "$id" } }, "$id"],
@@ -206,13 +252,25 @@ describe("Summary config helpers", () => {
     });
 
     describe("[function getTicketRoundIdExpr]", () => {
-        const testCases = [
-            [{ _brand: "bet", calc: { roundId: "$id" }, aliases: { foreign: "roundId" } }, "$roundId"],
-            [{ _brand: "round", calc: { roundId: "$id" } }, "$id"],
-        ] as unknown as [SummaryConfig, string][];
+        it("Return roundId expression in _bets collection", () => {
+            const testCases = [
+                [{ _brand: "bet", calc: { roundId: "$id" }, aliases: { foreign: "roundId" } }, "$roundId"],
+                [{ _brand: "round", calc: { roundId: "$id" } }, "$id"],
+            ] as unknown as [SummaryConfig, string][];
 
-        for (const [input, expectedOuput] of testCases) {
-            expect(getTicketRoundIdExpr(input)).toBe(expectedOuput);
-        }
+            for (const [input, expectedOuput] of testCases) {
+                expect(getTicketRoundIdExpr(input)).toBe(expectedOuput);
+            }
+        });
+        it("Throw when provided invalid input", () => {
+            const testCases = [
+                { _brand: "", calc: { roundId: "$id" }, aliases: { foreign: "roundId" } },
+                { _brand: "", calc: { roundId: "$id" } },
+            ] as unknown as SummaryConfig[];
+
+            for (const input of testCases) {
+                expect(() => getTicketRoundIdExpr(input)).toThrowError("Invalid summary config schema");
+            }
+        });
     });
 });
