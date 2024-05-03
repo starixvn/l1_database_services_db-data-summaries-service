@@ -69,7 +69,6 @@ const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetName
             currency: "$currency",
             gameId: "$_id.gameId",
             operatorId: "$_id.operatorId",
-            partnerId: "$_id.operatorId",
             siteId: "$siteId",
             playerId: "$_id.playerId",
             tickets: "$tickets",
