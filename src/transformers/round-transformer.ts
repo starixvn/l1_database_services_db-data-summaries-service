@@ -35,7 +35,14 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 playerId: { $toString: "$playerId" },
             },
         },
-        { $set: { winloss: { $subtract: ["$payout", "$stake"] } } },
+        {
+            $set: {
+                stake: { $round: ["$stake", 4] },
+                payout: { $round: ["$payout", 4] },
+                winloss: { $round: [{ $subtract: ["$payout", "$stake"] }, 4] },
+                refund: { $round: ["$refund", 4] },
+            },
+        },
     ];
 
     return pipeline;
