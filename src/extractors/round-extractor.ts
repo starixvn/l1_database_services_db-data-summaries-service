@@ -116,7 +116,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     pipeline: [{ $project: { _id: 0, time: `$${timeAlias}` } }],
                 },
             },
-            { $unwind: { path: "$round", preserveNullAndEmptyArrays: false } },
+            { $unwind: { path: "$round", preserveNullAndEmptyArrays: true } },
             { $set: { time: { $ifNull: ["$round.time", "$time"] }, round: "$$REMOVE" } },
             {
                 $project: {
