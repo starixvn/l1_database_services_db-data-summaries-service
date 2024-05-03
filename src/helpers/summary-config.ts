@@ -11,10 +11,6 @@ import type {
     SummaryConfig,
 } from "../types/summary-config.js";
 
-export const joinString = (...str: string[]) => {
-    return str.filter(Boolean).join("");
-};
-
 export const throwSummaryConfigError = (summaryConfig: SummaryConfig) => {
     const error = new TypeError("Invalid summary config schema");
     Object.assign(error, { summaryConfig });
@@ -24,14 +20,14 @@ export const throwSummaryConfigError = (summaryConfig: SummaryConfig) => {
 export function isBetSummaryConfig(summaryConfig: SchemaSummaryConfig): summaryConfig is SchemaBetSummaryConfig;
 export function isBetSummaryConfig(summaryConfig: SummaryConfig): summaryConfig is BetSummaryConfig;
 export function isBetSummaryConfig(summaryConfig: SchemaSummaryConfig | SummaryConfig): summaryConfig is SchemaBetSummaryConfig | BetSummaryConfig {
-    const { _brand, coll } = summaryConfig;
+    const { _brand, coll = {} } = summaryConfig;
     return _brand === "bet" || ("round" in coll && "bet" in coll);
 }
 
 export function isRoundSummaryConfig(summaryConfig: SchemaSummaryConfig): summaryConfig is SchemaRoundSummaryConfig;
 export function isRoundSummaryConfig(summaryConfig: SummaryConfig): summaryConfig is RoundSummaryConfig;
 export function isRoundSummaryConfig(summaryConfig: SchemaSummaryConfig | SummaryConfig): summaryConfig is SchemaRoundSummaryConfig | RoundSummaryConfig {
-    const { _brand, coll } = summaryConfig;
+    const { _brand, coll = {} } = summaryConfig;
     return _brand === "round" || ("round" in coll && !("bet" in coll));
 }
 
@@ -113,7 +109,7 @@ export const getRoundIdExpr = (summaryConfig: SummaryConfig) => {
 export const getTicketRoundIdExpr = (summaryConfig: SummaryConfig) => {
     if (isBetSummaryConfig(summaryConfig)) {
         const { aliases } = summaryConfig;
-        return aliases.foreign;
+        return `$${aliases.foreign}`;
     } else if (isRoundSummaryConfig(summaryConfig)) {
         const { calc } = summaryConfig;
         return calc.roundId;
