@@ -1,17 +1,21 @@
+import type { BaseLogger } from "@ldb/base-logger";
 import { GenericListener, TypedEventEmitter } from "@ldb/types";
-import { logger as baseLogger } from "../loggers";
 
-export class Subsciber<PubEvent extends string, PubEventDesc extends Record<PubEvent, GenericListener>, Publisher extends TypedEventEmitter<PubEventDesc> = TypedEventEmitter<PubEventDesc>> {
+export class Subscriber<
+    PubEvent extends string,
+    PubEventDesc extends Record<PubEvent, GenericListener>,
+    Publisher extends TypedEventEmitter<PubEventDesc> = TypedEventEmitter<PubEventDesc>
+> {
     private readonly publishers: Set<Publisher> = new Set();
 
-    constructor(protected readonly logger: typeof baseLogger = baseLogger) {}
+    constructor(protected readonly logger: BaseLogger) {}
 
     get className() {
         return this.constructor.name;
     }
 
-    protected handleError(error: unknown, component: string): void {
-        this.logger.logError(`${this.className}.${component}`, error);
+    protected handleError(error: unknown, component: string) {
+        this.logger.logError({ title: `${this.className}.${component}`, message: error });
     }
 
     subscribe<Event extends PubEvent>(publisher: Publisher, event: Event, listener: PubEventDesc[Event]): boolean {

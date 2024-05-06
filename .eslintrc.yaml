@@ -2,13 +2,14 @@ parser: "@typescript-eslint/parser"
 plugins: ["@typescript-eslint"]
 extends:
     - "google"
-    # - "plugin:@typescript-eslint/eslint-recommended"
+    - "plugin:@typescript-eslint/eslint-recommended"
     - "plugin:@typescript-eslint/recommended"
-    # - "plugin:security/recommended"
     - "prettier"
+    - "plugin:security/recommended-legacy"
+ignorePatterns: ["**/lib/**", "configs/**", "tests/**"]
+parserOptions:
+    project: "tsconfig.json"
 rules:
     no-throw-literal: "error"
     require-jsdoc: "off"
     valid-jsdoc: "off"
-ignorePatterns: ["/lib/**"]
-root: true
