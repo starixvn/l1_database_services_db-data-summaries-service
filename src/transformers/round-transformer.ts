@@ -6,12 +6,10 @@ import type { RoundSummaryConfig } from "../types/summary-config.js";
 import { BaseTransformer } from "./base-transformer.js";
 
 const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
-    const {
-        gameConfigs: { gameId },
-        aliases: { playerId, settled, time },
-        filter,
-        calc: { roundId, tickets, stake, payout, refund },
-    } = summaryConfig;
+    const { gameConfigs, aliases, filter, calc } = summaryConfig;
+    const { gameId } = gameConfigs;
+    const { playerId, settled, time } = aliases;
+    const { roundId, tickets, stake, payout, refund } = calc;
 
     const pipeline: Document[] = [
         {
@@ -23,6 +21,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
             $project: {
                 _id: 0,
                 time: `$${time}`,
+                roundTime: `$${time}`,
                 currency: 1,
                 gameId: { $literal: gameId },
                 operatorId: 1,
