@@ -30,7 +30,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
         this.execute = this.execute.bind(this);
     }
 
-    private async execute(gameId: number, roundNamespace: ChangeStreamNameSpace, timeAlias: string) {
+    private async execute(gameId: number) {
         const flag = `#${gameId}`;
         const flagValue = this.flags.get(flag);
         if (flagValue) {
@@ -40,7 +40,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
 
         try {
             this.flags.set(flag, new Date());
-            await this.extract(gameId, roundNamespace, timeAlias);
+            await this.extract(gameId);
         } catch (error) {
             this.logger.logError({ title: this.className, message: error }, { extra: { flag, flagValue } });
         } finally {
@@ -48,15 +48,15 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
         }
     }
 
-    private async extract(gameId: number, roundNamespace: ChangeStreamNameSpace, timeAlias: string) {
-        const pipeline = this.getPipeline(gameId, roundNamespace, timeAlias);
+    private async extract(gameId: number) {
+        const pipeline = this.getPipeline(gameId);
 
         await this.setDoSummaryFlag(gameId);
         await this.ticketSummariesCollection.aggregate(pipeline, AGGREGATE_OPTIONS).tryNext();
         await this.removeDoSummaryFlag(gameId);
     }
 
-    private getPipeline(gameId: number, roundNamespace: ChangeStreamNameSpace, timeAlias: string) {
+    private getPipeline(gameId: number) {
         return [
             { $match: { $and: [{ [DO_FLAG]: true, gameId }] } },
             {
@@ -89,7 +89,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                                 },
                             },
                         },
-                        { $project: { _id: 0, time: 1, tickets: 1, stake: 1, payout: 1, winloss: 1, refund: 1, playerId: 1 } },
+                        { $project: { _id: 0, time: 1, roundTime: 1, tickets: 1, stake: 1, payout: 1, winloss: 1, refund: 1, playerId: 1 } },
                     ],
                     as: "silo",
                 },
@@ -98,7 +98,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             {
                 $group: {
                     _id: "$_id",
-                    time: { $min: "$silo.time" },
+                    time: { $min: { $ifNull: ["$silo.roundTime", "$silo.time"] } },
                     tickets: { $sum: "$silo.tickets" },
                     stake: { $sum: "$silo.stake" },
                     payout: { $sum: "$silo.payout" },
@@ -107,17 +107,6 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     playerIds: { $addToSet: "$silo.playerId" },
                 },
             },
-            {
-                $lookup: {
-                    from: roundNamespace.coll,
-                    localField: "_id.roundId",
-                    foreignField: "id",
-                    as: "round",
-                    pipeline: [{ $project: { _id: 0, time: `$${timeAlias}` } }],
-                },
-            },
-            { $unwind: { path: "$round", preserveNullAndEmptyArrays: true } },
-            { $set: { time: { $ifNull: ["$round.time", "$time"] }, round: "$$REMOVE" } },
             {
                 $project: {
                     _id: 0,

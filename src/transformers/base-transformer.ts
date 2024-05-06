@@ -15,7 +15,7 @@ export const getFlag = (summaryConfig: SummaryConfig) => {
 };
 
 export type TransformerEvents = {
-    TRANSFORMED: (gameId: number, roundNamespace: ChangeStreamNameSpace, timeAlias: string) => void;
+    TRANSFORMED: (gameId: number) => void;
 };
 
 type Events<SC extends SummaryConfig> = SC["_brand"];
@@ -71,11 +71,9 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
     }
 
     private emitTransformed(summaryConfig: SC) {
-        const { gameConfigs, coll, aliases } = summaryConfig;
+        const { gameConfigs } = summaryConfig;
         const { gameId } = gameConfigs;
-        const { round } = coll;
-        const { time } = aliases;
-        this.emit<"TRANSFORMED">("TRANSFORMED", gameId, round, time);
+        this.emit<"TRANSFORMED">("TRANSFORMED", gameId);
     }
 
     private getSourceCollection(summaryConfig: SC) {
