@@ -5,11 +5,12 @@ import { TimeExtractor } from "./time-extractor.js";
 
 const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): Document[] => [
     { $match: { "__archive.do_daily": true } },
+    { $set: { roundTime: { $ifNull: ["$roundTime", "$time"] } } },
     {
         $group: {
             _id: {
-                time: { $dateFromParts: { year: { $year: "$time" }, month: { $month: "$time" }, day: { $dayOfMonth: "$time" } } },
-                timeTo: { $dateFromParts: { year: { $year: "$time" }, month: { $month: "$time" }, day: { $add: [{ $dayOfMonth: "$time" }, 1] } } },
+                time: { $dateFromParts: { year: { $year: "$roundTime" }, month: { $month: "$roundTime" }, day: { $dayOfMonth: "$roundTime" } } },
+                timeTo: { $dateFromParts: { year: { $year: "$roundTime" }, month: { $month: "$roundTime" }, day: { $add: [{ $dayOfMonth: "$roundTime" }, 1] } } },
                 gameId: "$gameId",
                 operatorId: "$operatorId",
                 siteId: "$siteId",
@@ -29,8 +30,8 @@ const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetName
                     $match: {
                         $expr: {
                             $and: [
-                                { $gte: ["$time", "$$time"] },
-                                { $lt: ["$time", "$$timeTo"] },
+                                { $gte: [{ $ifNull: ["$roundTime", "$time"] }, "$$time"] },
+                                { $lt: [{ $ifNull: ["$roundTime", "$time"] }, "$$timeTo"] },
                                 { $eq: ["$operatorId", "$$operatorId"] },
                                 { $eq: ["$siteId", "$$siteId"] },
                                 { $eq: ["$playerId", "$$playerId"] },
