@@ -26,7 +26,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                     as: "round",
                 },
             },
-            { $unwind: "$round", preserveNullAndEmptyArrays: true },
+            { $unwind: { path: "$round", preserveNullAndEmptyArrays: true } },
             { $set: { roundTime: "$round.time", round: "$$REMOVE" } }
         );
     }
