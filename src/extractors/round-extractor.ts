@@ -138,7 +138,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             {
                 $merge: {
                     into: this.roundSummariesNamespace,
-                    on: ["gameId", "currency", "operatorId", "siteId", "time", "roundId"],
+                    on: ["gameId", "currency", "operatorId", "siteId", "roundId"],
                     whenMatched: "replace",
                     whenNotMatched: "insert",
                 },
