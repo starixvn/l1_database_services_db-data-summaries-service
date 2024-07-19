@@ -69,6 +69,12 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                 playerId: "$_id.playerId",
             },
         },
+        {
+            $set: {
+                win: { $max: ["$winloss", 0] },
+                loss: { $min: ["$winloss", 0] },
+            },
+        },
     ];
 };
 

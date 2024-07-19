@@ -10,6 +10,8 @@ export type TicketSummary = {
     stake: number;
     payout: number;
     winloss: number;
+    win: number;
+    loss: number;
     refund: number;
 };
 
@@ -24,6 +26,8 @@ export type RoundSummary = {
     stake: number;
     payout: number;
     winloss: number;
+    win: number;
+    loss: number;
     refund: number;
     players: number;
     playerIds: string[];
@@ -39,7 +43,9 @@ export type TimeSummary = {
     stake: number;
     payout: number;
     winloss: number;
+    win: number;
+    loss: number;
     refund: number;
     players: number;
     playerIds: string[];
-}
+};

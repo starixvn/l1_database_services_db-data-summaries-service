@@ -42,6 +42,12 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 refund: { $round: ["$refund", 4] },
             },
         },
+        {
+            $set: {
+                win: { $max: ["$winloss", 0] },
+                loss: { $min: ["$winloss", 0] },
+            },
+        },
     ];
 
     return pipeline;

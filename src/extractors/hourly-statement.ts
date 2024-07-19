@@ -10,7 +10,14 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
         $group: {
             _id: {
                 time: { $dateFromParts: { year: { $year: "$roundTime" }, month: { $month: "$roundTime" }, day: { $dayOfMonth: "$roundTime" }, hour: { $hour: "$roundTime" } } },
-                timeTo: { $dateFromParts: { year: { $year: "$roundTime" }, month: { $month: "$roundTime" }, day: { $dayOfMonth: "$roundTime" }, hour: { $add: [{ $hour: "$roundTime" }, 1] } } },
+                timeTo: {
+                    $dateFromParts: {
+                        year: { $year: "$roundTime" },
+                        month: { $month: "$roundTime" },
+                        day: { $dayOfMonth: "$roundTime" },
+                        hour: { $add: [{ $hour: "$roundTime" }, 1] },
+                    },
+                },
                 gameId: "$gameId",
                 operatorId: "$operatorId",
                 siteId: "$siteId",
@@ -39,7 +46,7 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
                         },
                     },
                 },
-                { $project: { _id: 0, tickets: 1, stake: 1, payout: 1, winloss: 1, refund: 1, roundId: 1 } },
+                { $project: { _id: 0, tickets: 1, stake: 1, payout: 1, winloss: 1, win: 1, loss: 1, refund: 1, roundId: 1 } },
             ],
             as: "data",
         },
@@ -53,6 +60,8 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
             stake: { $sum: "$data.stake" },
             payout: { $sum: "$data.payout" },
             winloss: { $sum: "$data.winloss" },
+            win: { $sum: "$data.win" },
+            loss: { $sum: "$data.loss" },
             refund: { $sum: "$data.refund" },
             roundIds: { $addToSet: "$data.roundId" },
         },
@@ -76,6 +85,8 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
             stake: { $round: ["$stake", 4] },
             payout: { $round: ["$payout", 4] },
             winloss: { $round: ["$winloss", 4] },
+            win: { $round: ["$win", 4] },
+            loss: { $round: ["$loss", 4] },
             refund: { $round: ["$refund", 4] },
             rounds: { $size: "$roundIds" },
             roundIds: "$roundIds",
