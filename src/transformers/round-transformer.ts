@@ -8,7 +8,7 @@ import { BaseTransformer } from "./base-transformer.js";
 const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
     const { gameConfigs, aliases, filter, calc } = summaryConfig;
     const { gameId } = gameConfigs;
-    const { playerId, settled, time } = aliases;
+    const { playerId, settled, time, subRoundId } = aliases;
     const { roundId, tickets, stake, payout, refund } = calc;
 
     const pipeline: Document[] = [
@@ -27,6 +27,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 operatorId: 1,
                 siteId: { $cond: [{ $eq: ["$operatorId", { $literal: "SabaPlay" }] }, "$siteId", "$$REMOVE"] },
                 roundId,
+                subRoundId: `$${subRoundId}`,
                 tickets,
                 stake,
                 payout,

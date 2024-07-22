@@ -4,7 +4,7 @@ export type GameConfigInfo = { gameId: number; name: string };
 
 export type SchemaBetSummaryCollectionConfig = Record<"round" | "bet", string>;
 
-export type CommonSummaryAliases = "time" | "playerId" | "settled";
+export type CommonSummaryAliases = "time" | "playerId" | "settled" | "subRoundId";
 
 export type BetSummaryAliasConfig = Record<"foreign" | CommonSummaryAliases, string>;
 

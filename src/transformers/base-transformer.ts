@@ -104,7 +104,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
         const mergeStage = {
             $merge: {
                 into: this.ticketSummariesNamespace,
-                on: ["gameId", "roundId", "operatorId", "playerId"],
+                on: ["gameId", "roundId", "subRoundId", "operatorId", "playerId"],
                 whenMatched: "replace",
                 whenNotMatched: "insert",
             },
