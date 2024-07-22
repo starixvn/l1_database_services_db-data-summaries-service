@@ -97,6 +97,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
             $match: {
                 gameId: { $ne: null },
                 roundId: { $ne: null },
+                subRoundId: { $ne: null },
                 operatorId: { $ne: null },
                 playerId: { $ne: null },
             },

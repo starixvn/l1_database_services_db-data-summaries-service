@@ -40,6 +40,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
         {
             $group: {
                 _id: { roundId: `$${foreign}`, subRoundId: `$${subRoundId}`, operatorId: "$operatorId", playerId: { $toString: "$playerId" } },
+                _siloId: { $min: "$_id" },
                 time: { $max: "$time" },
                 roundTime: { $max: "$time" },
                 siteId: { $max: "$siteId" },
@@ -53,7 +54,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
         ...roundLookup,
         {
             $project: {
-                _id: 0,
+                _id: "$_siloId",
                 time: "$time",
                 roundTime: "$roundTime",
                 currency: "$currency",
