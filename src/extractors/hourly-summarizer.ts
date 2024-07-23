@@ -1,6 +1,7 @@
 import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
 import type { TimeInitiator } from "../initiators/time-initiator.js";
+import { version } from "../metadata.js";
 import { TimeExtractor } from "./time-extractor.js";
 
 const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): Document[] => [
@@ -78,6 +79,7 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
             refund: { $round: ["$refund", 4] },
             players: { $size: "$playerIds" },
             playerIds: "$playerIds",
+            __v: version,
         },
     },
     {

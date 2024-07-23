@@ -4,6 +4,7 @@ import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
 import { DO_FLAG, DONE_FLAG } from "../consts/summary-flags.js";
 import { getRoundIdExpr, getSourceNamespace, getTicketRoundIdExpr } from "../helpers/summary-config.js";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
+import { version } from "../metadata.js";
 import { Dispatcher } from "../modules/dispatcher.js";
 import { SummaryConfig } from "../types/summary-config.js";
 
@@ -102,6 +103,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
                 playerId: { $ne: null },
             },
         } as const satisfies Document;
+        const versionStage = { $set: { __v: version } };
         const mergeStage = {
             $merge: {
                 into: this.ticketSummariesNamespace,
@@ -111,8 +113,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
             },
         } as const satisfies Document;
 
-        pipeline.push(filterStage);
-        pipeline.push(mergeStage);
+        pipeline.push(filterStage, versionStage, mergeStage);
 
         return pipeline;
     }
