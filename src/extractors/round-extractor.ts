@@ -2,6 +2,7 @@ import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
 import { DO_FLAG, DONE_FLAG } from "../consts/summary-flags.js";
+import { version } from "../metadata.js";
 import { Subscriber } from "../modules/subscriber.js";
 import type { TransformerEvents } from "../transformers/base-transformer.js";
 import type { RoundTransformer } from "../transformers/round-transformer.js";
@@ -127,6 +128,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     refund: { $round: ["$refund", 4] },
                     players: { $size: "$playerIds" },
                     playerIds: "$playerIds",
+                    __v: version,
                 },
             },
             {
