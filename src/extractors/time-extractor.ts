@@ -62,10 +62,7 @@ export class TimeExtractor<Event extends keyof TimeInitiatorEvents> extends Subs
         const flag = `__archive.${type}` as const;
         const doFlag = `__archive.do_${type}` as const;
 
-        const { matchedCount, upsertedCount, modifiedCount } = await this.sourceCollection.updateMany(
-            { $or: [{ [flag]: false }, { [flag]: null }], "__archive.inserted": { $ne: true } },
-            { $set: { [doFlag]: true } }
-        );
+        const { matchedCount, upsertedCount, modifiedCount } = await this.sourceCollection.updateMany({ $or: [{ [flag]: false }, { [flag]: null }] }, { $set: { [doFlag]: true } });
 
         this.logger.logDebug({
             title: `${this.className}.markFlag - ${type}`,

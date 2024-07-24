@@ -162,7 +162,7 @@ export class RoundExtractor extends Subscriber<keyof RoundExtractorPublisherEven
         );
 
         this.logger.logDebug({
-            title: this.className,
+            title: `${this.className}+${DO_FLAG}`,
             message: `#-${matchedCount}  I-${upsertedCount}  M-${modifiedCount}   (${gameId})`,
         });
     }
@@ -181,7 +181,7 @@ export class RoundExtractor extends Subscriber<keyof RoundExtractorPublisherEven
             .toArray();
 
         /** */
-        const roundWarmingFilter = warmingRound.length ? { $expr: { $lt: ["$roundId", { $literal: warmingRound[0] }] } } : null;
+        const roundWarmingFilter = warmingRound.length ? { $expr: { $lte: ["$roundId", { $literal: warmingRound[0] }] } } : null;
 
         /** If cannot determine the round, use time filter */
         const doneFilter = roundWarmingFilter ?? timeWarmingFilter;
@@ -199,7 +199,7 @@ export class RoundExtractor extends Subscriber<keyof RoundExtractorPublisherEven
         );
 
         this.logger.logDebug({
-            title: this.className,
+            title: `${this.className}-${DO_FLAG}`,
             message: `+++  #-${matchedUpdated}  M-${modifiedUpdated}  +++    ---  #-${matchedRemoved}  M-${modifiedRemoved}  ---    (${gameId})`,
         });
     }
