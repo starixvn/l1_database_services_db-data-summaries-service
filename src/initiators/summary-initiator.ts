@@ -5,7 +5,7 @@ import { Dispatcher } from "../modules/dispatcher.js";
 import type { Scheduler, SchedulerEvents } from "../types/scheduler.js";
 import type { SchemaSummaryConfig, SummaryConfig } from "../types/summary-config.js";
 
-export type SummaryInitiatorEvents = Record<SummaryConfig["_brand"], (config: SummaryConfig) => Promise<void>>;
+export type SummaryInitiatorEvents = Record<SummaryConfig["_brand"], (config: SummaryConfig) => Promise<void>> & Record<"gameId", (gameId: number) => Promise<void>>;
 
 export class SummaryInitiator extends Dispatcher<SummaryInitiatorEvents, "SUMMARY_ROUND", Pick<SchedulerEvents, "SUMMARY_ROUND">, Scheduler> {
     constructor(private readonly mongo: MongoClient, private readonly summaryConfigsNamespace: ChangeStreamNameSpace, logger: BaseLogger) {
@@ -39,6 +39,11 @@ export class SummaryInitiator extends Dispatcher<SummaryInitiatorEvents, "SUMMAR
             const summaryConfig = parseSummaryConfig(rawSummaryConfig);
             const { _brand } = summaryConfig;
             this.emit(_brand, summaryConfig);
+
+            const {
+                gameConfigs: { gameId },
+            } = summaryConfig;
+            this.emit("gameId", gameId);
         } catch (error) {
             this.logger.logError({ title: this.className, message: error }, { extra: { rawSummaryConfig } });
         }

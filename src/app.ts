@@ -66,6 +66,7 @@ export class App {
     initiate() {
         this.roundExtractor.subscribe(this.ticketTransformer);
         this.roundExtractor.subscribe(this.roundTransformer);
+        this.roundExtractor.subscribeInitiator(this.summaryInitiator);
 
         this.ticketTransformer.subscribe(this.summaryInitiator);
         this.roundTransformer.subscribe(this.summaryInitiator);

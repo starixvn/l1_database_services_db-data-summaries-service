@@ -2,6 +2,7 @@ import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
 import { DO_FLAG, DONE_FLAG } from "../consts/summary-flags.js";
+import type { SummaryInitiator, SummaryInitiatorEvents } from "../initiators/summary-initiator.js";
 import { version } from "../metadata.js";
 import { Subscriber } from "../modules/subscriber.js";
 import type { TransformerEvents } from "../transformers/base-transformer.js";
@@ -9,7 +10,9 @@ import type { RoundTransformer } from "../transformers/round-transformer.js";
 import type { TicketTransformer } from "../transformers/ticket-transformer.js";
 import type { TicketSummary } from "../types/summary-schema.js";
 
-export class RoundExtractor extends Subscriber<keyof TransformerEvents, TransformerEvents, RoundTransformer | TicketTransformer> {
+type RoundExtractorPublisherEvents = TransformerEvents & Pick<SummaryInitiatorEvents, "gameId">;
+
+export class RoundExtractor extends Subscriber<keyof RoundExtractorPublisherEvents, RoundExtractorPublisherEvents, RoundTransformer | TicketTransformer | SummaryInitiator> {
     private readonly flags: Map<string, Date> = new Map();
 
     constructor(
@@ -204,8 +207,14 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
     subscribe<T extends RoundTransformer | TicketTransformer>(publisher: T) {
         return super.subscribe(publisher, "TRANSFORMED", this.execute);
     }
+    subscribeInitiator<T extends SummaryInitiator>(publisher: T) {
+        return super.subscribe(publisher, "gameId", this.execute);
+    }
 
     unsubscribe<T extends RoundTransformer | TicketTransformer>(publisher: T) {
         return super.unsubscribe(publisher, "TRANSFORMED", this.execute);
+    }
+    unsubscribeInitiator<T extends SummaryInitiator>(publisher: T) {
+        return super.unsubscribe(publisher, "gameId", this.execute);
     }
 }
