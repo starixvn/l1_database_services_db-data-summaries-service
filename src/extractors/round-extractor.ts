@@ -176,7 +176,7 @@ export class RoundExtractor extends Subscriber<keyof RoundExtractorPublisherEven
          * Mark done for tickets belong to rounds before this round.
          */
         const warmingRound = await this.ticketSummariesCollection
-            .aggregate([{ $match: { [DO_FLAG]: true, gameId, ...timeWarmingFilter } }, { $project: { _id: 0, data: "$roundId" } }, { $sort: { data: -1 } }, { $limit: 1 }])
+            .aggregate([{ $match: { [DO_FLAG]: true, gameId, ...timeWarmingFilter } }, { $project: { _id: 0, data: "$roundId" } }, { $sort: { roundId: -1 } }, { $limit: 1 }])
             .map((_) => _.data)
             .toArray();
 
