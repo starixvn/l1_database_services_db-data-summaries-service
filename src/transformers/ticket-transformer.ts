@@ -9,7 +9,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
     const { gameConfigs, coll, filter, aliases, calc } = summaryConfig;
     const { gameId } = gameConfigs;
     const { round } = coll;
-    const { foreign, playerId, settled, time } = aliases;
+    const { foreign, playerId, settled, time, subRoundId } = aliases;
     const { tickets, stake, payout, refund, roundId } = calc;
 
     const roundLookup: Document[] = [];
@@ -22,7 +22,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                     from: round.coll,
                     localField: "_id.roundId",
                     foreignField,
-                    pipeline: [{ $project: { _id: 0, time: `$${time}` } }],
+                    pipeline: [{ $project: { _id: 0, time: `$${time}` } }, { $limit: 1 }],
                     as: "round",
                 },
             },
@@ -39,7 +39,8 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
         },
         {
             $group: {
-                _id: { roundId: `$${foreign}`, operatorId: "$operatorId", playerId: { $toString: "$playerId" } },
+                _id: { roundId: `$${foreign}`, subRoundId: `$${subRoundId}`, operatorId: "$operatorId", playerId: { $toString: "$playerId" } },
+                _siloId: { $min: "$_id" },
                 time: { $max: "$time" },
                 roundTime: { $max: "$time" },
                 siteId: { $max: "$siteId" },
@@ -53,7 +54,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
         ...roundLookup,
         {
             $project: {
-                _id: 0,
+                _id: "$_siloId",
                 time: "$time",
                 roundTime: "$roundTime",
                 currency: "$currency",
@@ -61,12 +62,19 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                 operatorId: "$_id.operatorId",
                 siteId: { $cond: [{ $eq: ["$_id.operatorId", { $literal: "SabaPlay" }] }, "$siteId", "$$REMOVE"] },
                 roundId: "$_id.roundId",
+                subRoundId: "$_id.subRoundId",
                 tickets: "$tickets",
                 stake: { $round: ["$stake", 4] },
                 payout: { $round: ["$payout", 4] },
                 winloss: { $round: [{ $subtract: ["$payout", "$stake"] }, 4] },
                 refund: { $round: ["$refund", 4] },
                 playerId: "$_id.playerId",
+            },
+        },
+        {
+            $set: {
+                win: { $max: ["$winloss", 0] },
+                loss: { $min: ["$winloss", 0] },
             },
         },
     ];

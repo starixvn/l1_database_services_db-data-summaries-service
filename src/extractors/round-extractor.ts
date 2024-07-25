@@ -2,13 +2,15 @@ import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
 import { DO_FLAG, DONE_FLAG } from "../consts/summary-flags.js";
+import type { SummaryInitiator } from "../initiators/summary-initiator.js";
+import { version } from "../metadata.js";
 import { Subscriber } from "../modules/subscriber.js";
 import type { TransformerEvents } from "../transformers/base-transformer.js";
 import type { RoundTransformer } from "../transformers/round-transformer.js";
 import type { TicketTransformer } from "../transformers/ticket-transformer.js";
 import type { TicketSummary } from "../types/summary-schema.js";
 
-export class RoundExtractor extends Subscriber<keyof TransformerEvents, TransformerEvents, RoundTransformer | TicketTransformer> {
+export class RoundExtractor extends Subscriber<keyof TransformerEvents, TransformerEvents, RoundTransformer | TicketTransformer | SummaryInitiator> {
     private readonly flags: Map<string, Date> = new Map();
 
     constructor(
@@ -89,7 +91,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                                 },
                             },
                         },
-                        { $project: { _id: 0, time: 1, roundTime: 1, tickets: 1, stake: 1, payout: 1, winloss: 1, refund: 1, playerId: 1 } },
+                        { $project: { _id: 0, time: 1, roundTime: 1, tickets: 1, stake: 1, payout: 1, winloss: 1, win: 1, loss: 1, refund: 1, playerId: 1 } },
                     ],
                     as: "silo",
                 },
@@ -103,6 +105,8 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     stake: { $sum: "$silo.stake" },
                     payout: { $sum: "$silo.payout" },
                     winloss: { $sum: "$silo.winloss" },
+                    win: { $sum: "$silo.win" },
+                    loss: { $sum: "$silo.loss" },
                     refund: { $sum: "$silo.refund" },
                     playerIds: { $addToSet: "$silo.playerId" },
                 },
@@ -120,9 +124,12 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     stake: { $round: ["$stake", 4] },
                     payout: { $round: ["$payout", 4] },
                     winloss: { $round: ["$winloss", 4] },
+                    win: { $round: ["$win", 4] },
+                    loss: { $round: ["$loss", 4] },
                     refund: { $round: ["$refund", 4] },
                     players: { $size: "$playerIds" },
                     playerIds: "$playerIds",
+                    __v: version,
                 },
             },
             {
@@ -153,7 +160,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
         );
 
         this.logger.logDebug({
-            title: this.className,
+            title: `${this.className}+${DO_FLAG}`,
             message: `#-${matchedCount}  I-${upsertedCount}  M-${modifiedCount}   (${gameId})`,
         });
     }
@@ -172,7 +179,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             .toArray();
 
         /** */
-        const roundWarmingFilter = warmingRound.length ? { $expr: { $lt: ["$roundId", { $literal: warmingRound[0] }] } } : null;
+        const roundWarmingFilter = warmingRound.length ? { $expr: { $lte: ["$roundId", { $literal: warmingRound[0] }] } } : null;
 
         /** If cannot determine the round, use time filter */
         const doneFilter = roundWarmingFilter ?? timeWarmingFilter;
@@ -190,7 +197,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
         );
 
         this.logger.logDebug({
-            title: this.className,
+            title: `${this.className}-${DO_FLAG}`,
             message: `+++  #-${matchedUpdated}  M-${modifiedUpdated}  +++    ---  #-${matchedRemoved}  M-${modifiedRemoved}  ---    (${gameId})`,
         });
     }

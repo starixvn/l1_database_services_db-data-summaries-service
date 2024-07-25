@@ -4,6 +4,7 @@ import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
 import { DO_FLAG, DONE_FLAG } from "../consts/summary-flags.js";
 import { getRoundIdExpr, getSourceNamespace, getTicketRoundIdExpr } from "../helpers/summary-config.js";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
+import { version } from "../metadata.js";
 import { Dispatcher } from "../modules/dispatcher.js";
 import { SummaryConfig } from "../types/summary-config.js";
 
@@ -97,21 +98,22 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
             $match: {
                 gameId: { $ne: null },
                 roundId: { $ne: null },
+                subRoundId: { $ne: null },
                 operatorId: { $ne: null },
                 playerId: { $ne: null },
             },
         } as const satisfies Document;
+        const versionStage = { $set: { __v: version } };
         const mergeStage = {
             $merge: {
                 into: this.ticketSummariesNamespace,
-                on: ["gameId", "roundId", "operatorId", "playerId"],
+                on: ["gameId", "roundId", "subRoundId", "operatorId", "playerId"],
                 whenMatched: "replace",
                 whenNotMatched: "insert",
             },
         } as const satisfies Document;
 
-        pipeline.push(filterStage);
-        pipeline.push(mergeStage);
+        pipeline.push(filterStage, versionStage, mergeStage);
 
         return pipeline;
     }
@@ -123,7 +125,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
         );
 
         this.logger.logDebug({
-            title: this.className,
+            title: `${this.className}+${DO_FLAG}`,
             message: `#-${matchedCount}  I-${upsertedCount}  M-${modifiedCount}   (${collection.namespace})`,
         });
     }
@@ -142,7 +144,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
             .toArray();
 
         const roundId = getTicketRoundIdExpr(summaryConfig);
-        const warmingRoundFilter = warmingRound.length ? { $expr: { $lt: [roundId, { $literal: warmingRound[0] }] } } : null;
+        const warmingRoundFilter = warmingRound.length ? { $expr: { $lte: [roundId, { $literal: warmingRound[0] }] } } : null;
 
         const warmingFilter = warmingRoundFilter ?? warmingTimeFilter;
         return { ...warmingFilter, [settled]: true };
@@ -153,7 +155,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
         const { matchedCount: matchedRemoved, modifiedCount: modifiedRemoved } = await collection.updateMany({ [DO_FLAG]: true }, { $unset: { [DO_FLAG]: 1 } });
 
         this.logger.logDebug({
-            title: this.className,
+            title: `${this.className}-${DO_FLAG}`,
             message: `+++  #-${matchedUpdated}  M-${modifiedUpdated}  +++    ---  #-${matchedRemoved}  M-${modifiedRemoved}  ---    (${collection.namespace})`,
         });
     }

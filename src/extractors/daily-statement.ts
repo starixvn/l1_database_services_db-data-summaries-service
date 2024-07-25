@@ -1,6 +1,7 @@
 import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
 import type { TimeInitiator } from "../initiators/time-initiator.js";
+import { version } from "../metadata.js";
 import { TimeExtractor } from "./time-extractor.js";
 
 const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): Document[] => [
@@ -39,7 +40,7 @@ const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetName
                         },
                     },
                 },
-                { $project: { _id: 0, tickets: 1, stake: 1, payout: 1, winloss: 1, refund: 1, roundId: 1 } },
+                { $project: { _id: 0, tickets: 1, stake: 1, payout: 1, winloss: 1, win: 1, loss: 1, refund: 1, roundId: 1 } },
             ],
             as: "data",
         },
@@ -53,6 +54,8 @@ const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetName
             stake: { $sum: "$data.stake" },
             payout: { $sum: "$data.payout" },
             winloss: { $sum: "$data.winloss" },
+            win: { $sum: "$data.win" },
+            loss: { $sum: "$data.loss" },
             refund: { $sum: "$data.refund" },
             roundIds: { $addToSet: "$data.roundId" },
         },
@@ -76,9 +79,12 @@ const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetName
             stake: { $round: ["$stake", 4] },
             payout: { $round: ["$payout", 4] },
             winloss: { $round: ["$winloss", 4] },
+            win: { $round: ["$win", 4] },
+            loss: { $round: ["$loss", 4] },
             refund: { $round: ["$refund", 4] },
             rounds: { $size: "$roundIds" },
             roundIds: "$roundIds",
+            __v: version,
         },
     },
     {

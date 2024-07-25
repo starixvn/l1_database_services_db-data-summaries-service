@@ -1,6 +1,7 @@
 import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
 import type { TimeInitiator } from "../initiators/time-initiator.js";
+import { version } from "../metadata.js";
 import { TimeExtractor } from "./time-extractor.js";
 
 const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): Document[] => [
@@ -49,6 +50,8 @@ const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetName
             stake: { $sum: "$data.stake" },
             payout: { $sum: "$data.payout" },
             winloss: { $sum: "$data.winloss" },
+            win: { $sum: "$data.win" },
+            loss: { $sum: "$data.loss" },
             refund: { $sum: "$data.refund" },
             playerIds: { $addToSet: "$data.playerIds" },
         },
@@ -72,9 +75,12 @@ const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetName
             stake: { $round: ["$stake", 4] },
             payout: { $round: ["$payout", 4] },
             winloss: { $round: ["$winloss", 4] },
+            win: { $round: ["$win", 4] },
+            loss: { $round: ["$loss", 4] },
             refund: { $round: ["$refund", 4] },
             players: { $size: "$playerIds" },
             playerIds: "$playerIds",
+            __v: version,
         },
     },
     {

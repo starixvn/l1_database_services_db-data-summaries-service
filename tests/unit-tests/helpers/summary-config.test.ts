@@ -98,7 +98,7 @@ describe("Summary config helpers", () => {
                         gameConfigs: { gameId: 1, name: "taixiu" },
                         db: "minigame",
                         coll: { round: "_phiens", bet: "_ones" },
-                        aliases: { foreign: "roundId", playerId: "playerId", settled: "paid", time: "time" },
+                        aliases: { foreign: "roundId", playerId: "playerId", settled: "paid", time: "time", subRoundId: "roundId" },
                         calc: {
                             roundId: '"$id"',
                             tickets: '{"$literal":1}',
@@ -114,7 +114,7 @@ describe("Summary config helpers", () => {
                         gameConfigs: { gameId: 1, name: "taixiu" },
                         coll: { round: { db: "minigame", coll: "taixiu_phiens" }, bet: { db: "minigame", coll: "taixiu_ones" } },
                         filter: {},
-                        aliases: { foreign: "roundId", playerId: "playerId", settled: "paid", time: "time" },
+                        aliases: { foreign: "roundId", playerId: "playerId", settled: "paid", time: "time", subRoundId: "roundId" },
                         calc: {
                             roundId: "$id",
                             tickets: { $literal: 1 },
@@ -141,7 +141,7 @@ describe("Summary config helpers", () => {
                         db: "minigame",
                         coll: { round: "_rounds" },
                         filter: '{"paid":true}',
-                        aliases: { playerId: "playerId", settled: "paid", time: "time" },
+                        aliases: { playerId: "playerId", settled: "paid", time: "time", subRoundId: "id" },
                         calc: {
                             roundId: '"$id"',
                             tickets: '{"$literal":1}',
@@ -157,7 +157,7 @@ describe("Summary config helpers", () => {
                         gameConfigs: { gameId: 47, name: "treasureisland" },
                         coll: { round: { db: "minigame", coll: "treasureisland_rounds" } },
                         filter: { paid: true },
-                        aliases: { playerId: "playerId", settled: "paid", time: "time" },
+                        aliases: { playerId: "playerId", settled: "paid", time: "time", subRoundId: "id" },
                         calc: {
                             roundId: "$id",
                             tickets: { $literal: 1 },
@@ -183,7 +183,7 @@ describe("Summary config helpers", () => {
                     db: "minigame",
                     coll: { bet: "_bets" },
                     filter: '{"paid":true}',
-                    aliases: { playerId: "playerId", settled: "paid", time: "time" },
+                    aliases: { playerId: "playerId", settled: "paid", time: "time", subRoundId: "id" },
                     calc: {
                         roundId: '"$id"',
                         tickets: '{"$literal":1}',
@@ -197,7 +197,7 @@ describe("Summary config helpers", () => {
                     gameConfigs: { gameId: 0, name: "test" },
                     db: "minigame",
                     filter: '{"paid":true}',
-                    aliases: { playerId: "playerId", settled: "paid", time: "time" },
+                    aliases: { playerId: "playerId", settled: "paid", time: "time", subRoundId: "id" },
                     calc: {
                         roundId: '"$id"',
                         tickets: '{"$literal":1}',

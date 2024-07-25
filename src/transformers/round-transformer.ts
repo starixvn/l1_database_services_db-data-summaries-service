@@ -8,7 +8,7 @@ import { BaseTransformer } from "./base-transformer.js";
 const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
     const { gameConfigs, aliases, filter, calc } = summaryConfig;
     const { gameId } = gameConfigs;
-    const { playerId, settled, time } = aliases;
+    const { playerId, settled, time, subRoundId } = aliases;
     const { roundId, tickets, stake, payout, refund } = calc;
 
     const pipeline: Document[] = [
@@ -19,7 +19,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
         },
         {
             $project: {
-                _id: 0,
+                _id: 1,
                 time: `$${time}`,
                 roundTime: `$${time}`,
                 currency: 1,
@@ -27,6 +27,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 operatorId: 1,
                 siteId: { $cond: [{ $eq: ["$operatorId", { $literal: "SabaPlay" }] }, "$siteId", "$$REMOVE"] },
                 roundId,
+                subRoundId: `$${subRoundId}`,
                 tickets,
                 stake,
                 payout,
@@ -40,6 +41,12 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 payout: { $round: ["$payout", 4] },
                 winloss: { $round: [{ $subtract: ["$payout", "$stake"] }, 4] },
                 refund: { $round: ["$refund", 4] },
+            },
+        },
+        {
+            $set: {
+                win: { $max: ["$winloss", 0] },
+                loss: { $min: ["$winloss", 0] },
             },
         },
     ];
