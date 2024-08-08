@@ -132,6 +132,12 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
         },
         {
             $set: {
+                "USD.winloss": { $round: [{ $subtract: ["$USD.payout", "$USD.stake"] }, 4] },
+                "VND.winloss": { $round: [{ $subtract: ["$VND.payout", "$VND.stake"] }, 4] },
+            },
+        },
+        {
+            $set: {
                 win: { $max: ["$winloss", 0] },
                 loss: { $min: ["$winloss", 0] },
                 "USD.win": { $round: [{ $max: ["$USD.winloss", 0] }, 4] },
