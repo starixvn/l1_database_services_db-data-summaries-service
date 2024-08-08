@@ -163,7 +163,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             .aggregate([
                 { $match: { $or: [{ [DONE_FLAG]: false }, { [DONE_FLAG]: null }], gameId } },
                 { $limit: BATCH_LIMIT },
-                { $project: { _id: 1 } },
+                { $project: { _id: 1, __archive: 1 } },
                 { $set: { [DO_FLAG]: true } },
                 { $merge: { into: this.ticketSummariesCollection.collectionName } },
             ])

@@ -73,7 +73,7 @@ export class TimeExtractor<Event extends keyof TimeInitiatorEvents> extends Subs
             .aggregate([
                 { $match: { $or: [{ [flag]: false }, { [flag]: null }] } },
                 { $limit: BATCH_LIMIT },
-                { $project: { _id: 1 } },
+                { $project: { _id: 1, __archive: 1 } },
                 { $set: { [doFlag]: true } },
                 { $merge: { into: this.sourceCollection.collectionName } },
             ])

@@ -120,7 +120,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
                     },
                 },
                 { $limit: BATCH_LIMIT },
-                { $project: { _id: 1 } },
+                { $project: { _id: 1, __archive: 1 } },
                 { $set: { [DO_FLAG]: true } },
                 { $merge: { into: collection.collectionName } },
             ])
