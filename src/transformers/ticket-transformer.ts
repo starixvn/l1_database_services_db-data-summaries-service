@@ -87,9 +87,9 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                 from: "currencies",
                 localField: "currency",
                 foreignField: "name",
-                let: { operatorId: "$_id.operatorId", currency: "$currency", groupId: "$currencyGroupId" },
+                let: { operatorId: "$_id.operatorId", currency: "$currency" },
                 pipeline: [
-                    { $match: { $expr: { $and: [{ $eq: ["$name", "$$currency"] }, { $eq: ["$partnerId", "$$operatorId"] }, { $eq: ["$groupId", "$$groupId"] }] } } },
+                    { $match: { $expr: { $and: [{ $eq: ["$name", "$$currency"] }, { $eq: ["$partnerId", "$$operatorId"] }] } } },
                     { $project: { _id: 0, code: 1, multiplier: 1, isTest: 1 } },
                     { $limit: 1 },
                 ],
