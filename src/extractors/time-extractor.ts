@@ -1,7 +1,7 @@
 import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
-import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD } from "../consts/summary-constants.js";
+import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD, TIME_WARMING_PERIOD } from "../consts/summary-constants.js";
 import type { TimeInitiator, TimeInitiatorEvents } from "../initiators/time-initiator.js";
 import { Subscriber } from "../modules/subscriber.js";
 
@@ -54,14 +54,19 @@ export class TimeExtractor<Event extends keyof TimeInitiatorEvents> extends Subs
     }
 
     private async summarize() {
+        const doFlag = getDoFlag(this.config.type);
         const pipeline = this.pipelineFactory(this.sourceNamespace, this.targetNamespace);
+        const matchStage = { $match: { [doFlag]: true } };
 
         let lastCount = 0;
         do {
             await this.setDoFlag();
-            await this.sourceCollection.aggregate(pipeline, AGGREGATE_OPTIONS).tryNext();
+            await this.sourceCollection.aggregate([matchStage, ...pipeline], AGGREGATE_OPTIONS).toArray();
             lastCount = await this.setDoneFlag();
         } while (lastCount >= BATCH_LIMIT * BATCH_TERMINATE_THRESHOLD);
+
+        const matchWarmingStage = { $match: { time: { $gte: new Date(Date.now() - TIME_WARMING_PERIOD) } } };
+        await this.sourceCollection.aggregate([matchWarmingStage, ...pipeline], AGGREGATE_OPTIONS).toArray();
     }
 
     private async setDoFlag() {
@@ -71,7 +76,7 @@ export class TimeExtractor<Event extends keyof TimeInitiatorEvents> extends Subs
 
         await this.sourceCollection
             .aggregate([
-                { $match: { $or: [{ [flag]: false }, { [flag]: null }] } },
+                { $match: { $or: [{ [flag]: false }, { [flag]: null }], time: { $lt: new Date(Date.now() - TIME_WARMING_PERIOD) } } },
                 { $limit: BATCH_LIMIT },
                 { $project: { _id: 1, __archive: 1 } },
                 { $set: { [doFlag]: true } },
