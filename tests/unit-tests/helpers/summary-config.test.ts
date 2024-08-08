@@ -1,7 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import type { ChangeStreamNameSpace } from "@ldb/mongo";
 import {
-    getRoundIdExpr,
     getSourceNamespace,
     getTicketRoundIdExpr,
     isBetSummaryConfig,
@@ -234,19 +233,6 @@ describe("Summary config helpers", () => {
 
             for (const input of testCases) {
                 expect(() => getSourceNamespace(input)).toThrowError("Invalid summary config schema");
-            }
-        });
-    });
-
-    describe("[function getRoundIdExpr]", () => {
-        it("Return id expression in _rounds collection", () => {
-            const testCases = [
-                [{ _brand: "bet", calc: { roundId: "$id" }, aliases: { foreign: "$roundId" } }, "$id"],
-                [{ _brand: "round", calc: { roundId: "$id" } }, "$id"],
-            ] as unknown as [SummaryConfig, string][];
-
-            for (const [input, expectedOuput] of testCases) {
-                expect(getRoundIdExpr(input)).toBe(expectedOuput);
             }
         });
     });
