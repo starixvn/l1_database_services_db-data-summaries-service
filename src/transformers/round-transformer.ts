@@ -3,7 +3,7 @@ import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
 import { DO_FLAG } from "../consts/summary-constants.js";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import type { RoundSummaryConfig } from "../types/summary-config.js";
-import { BaseTransformer } from "./base-transformer.js";
+import { BaseTransformer, LOOKUP_USER } from "./base-transformer.js";
 
 const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
     const { gameConfigs, aliases, filter, calc } = summaryConfig;
@@ -29,6 +29,22 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
             },
         },
         {
+            $lookup: {
+                from: "user_silos",
+                localField: "playerId",
+                foreignField: "playerId",
+                let: { operatorId: "$operatorId", playerId: "$playerId" },
+                pipeline: [
+                    { $match: { $expr: { $and: [{ $eq: ["$operatorId", "$$operatorId"] }, { $eq: ["$playerId", "$$playerId"] }] } } },
+                    { $project: { _id: 0, currencyGroupId: 1, siteName: 1 } },
+                    { $limit: 1 },
+                ],
+                as: LOOKUP_USER,
+            },
+        },
+        { $unwind: { path: `$${LOOKUP_USER}`, preserveNullAndEmptyArrays: true } },
+        { $set: { currencyGroupId: `$${LOOKUP_USER}.currencyGroupId`, siteName: `$${LOOKUP_USER}.siteName`, [LOOKUP_USER]: "$$REMOVE" } },
+        {
             $project: {
                 _id: 1,
                 time: `$${time}`,
@@ -44,6 +60,8 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 payout,
                 refund,
                 playerId: { $toString: "$playerId" },
+                currencyGroupId: 1,
+                siteName: 1,
             },
         },
         {
