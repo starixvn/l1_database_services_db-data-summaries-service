@@ -101,11 +101,6 @@ export const getSourceNamespace = (summaryConfig: SummaryConfig) => {
     }
 };
 
-export const getRoundIdExpr = (summaryConfig: SummaryConfig) => {
-    const { calc } = summaryConfig;
-    return calc.roundId;
-};
-
 export const getTicketRoundIdExpr = (summaryConfig: SummaryConfig) => {
     if (isBetSummaryConfig(summaryConfig)) {
         const { aliases } = summaryConfig;

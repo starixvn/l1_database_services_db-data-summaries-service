@@ -1,11 +1,15 @@
 import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
+import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD } from "../consts/summary-constants.js";
 import type { TimeInitiator, TimeInitiatorEvents } from "../initiators/time-initiator.js";
 import { Subscriber } from "../modules/subscriber.js";
 
 export type TimePipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace) => Document[];
 export type TimeExtractorConfig<Event extends keyof TimeInitiatorEvents> = { type: Lowercase<Event> };
+
+const getFlag = <S extends string>(type: S) => `__archive.${type}` as const;
+const getDoFlag = <S extends string>(type: S) => `__archive.do_${type}` as const;
 
 export class TimeExtractor<Event extends keyof TimeInitiatorEvents> extends Subscriber<Event, Pick<TimeInitiatorEvents, Event>, TimeInitiator> {
     private flag = false;
@@ -52,35 +56,46 @@ export class TimeExtractor<Event extends keyof TimeInitiatorEvents> extends Subs
     private async summarize() {
         const pipeline = this.pipelineFactory(this.sourceNamespace, this.targetNamespace);
 
-        await this.markFlag();
-        await this.sourceCollection.aggregate(pipeline, AGGREGATE_OPTIONS).tryNext();
-        await this.updateFlag();
+        let lastCount = 0;
+        do {
+            await this.setDoFlag();
+            await this.sourceCollection.aggregate(pipeline, AGGREGATE_OPTIONS).tryNext();
+            lastCount = await this.setDoneFlag();
+        } while (lastCount >= BATCH_LIMIT * BATCH_TERMINATE_THRESHOLD);
     }
 
-    private async markFlag() {
+    private async setDoFlag() {
         const { type } = this.config;
-        const flag = `__archive.${type}` as const;
-        const doFlag = `__archive.do_${type}` as const;
+        const flag = getFlag(type);
+        const doFlag = getDoFlag(type);
 
-        const { matchedCount, upsertedCount, modifiedCount } = await this.sourceCollection.updateMany({ $or: [{ [flag]: false }, { [flag]: null }] }, { $set: { [doFlag]: true } });
-
-        this.logger.logDebug({
-            title: `${this.className}.markFlag - ${type}`,
-            message: `#-${matchedCount}  I-${upsertedCount}  M-${modifiedCount}    (${this.sourceCollection.namespace})`,
-        });
+        await this.sourceCollection
+            .aggregate([
+                { $match: { $or: [{ [flag]: false }, { [flag]: null }] } },
+                { $limit: BATCH_LIMIT },
+                { $project: { _id: 1 } },
+                { $set: { [doFlag]: true } },
+                { $merge: { into: this.sourceCollection.collectionName } },
+            ])
+            .toArray();
     }
 
-    protected async updateFlag() {
+    protected async setDoneFlag() {
         const { type } = this.config;
-        const flag = `__archive.${type}` as const;
-        const doFlag = `__archive.do_${type}` as const;
+        const flag = getFlag(type);
+        const doFlag = getDoFlag(type);
 
-        const { matchedCount, upsertedCount, modifiedCount } = await this.sourceCollection.updateMany({ [doFlag]: true }, [{ $set: { [doFlag]: "$$REMOVE", [flag]: true } }]);
+        const { matchedCount, upsertedCount, modifiedCount } = await this.sourceCollection.updateMany(
+            { [doFlag]: true }, //
+            [{ $set: { [doFlag]: "$$REMOVE", [flag]: true } }]
+        );
 
         this.logger.logDebug({
             title: `${this.className}.updateFlag - ${type}`,
             message: `#-${matchedCount}  I-${upsertedCount}  M-${modifiedCount}    (${this.sourceCollection.namespace})`,
         });
+
+        return modifiedCount + upsertedCount;
     }
 
     subscribe(publisher: TimeInitiator, event: Event) {

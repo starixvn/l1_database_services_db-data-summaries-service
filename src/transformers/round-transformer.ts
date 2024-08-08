@@ -1,6 +1,6 @@
 import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
-import { DO_FLAG } from "../consts/summary-flags.js";
+import { DO_FLAG } from "../consts/summary-constants.js";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import type { RoundSummaryConfig } from "../types/summary-config.js";
 import { BaseTransformer } from "./base-transformer.js";
@@ -14,7 +14,18 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
     const pipeline: Document[] = [
         {
             $match: {
-                $and: [{ [DO_FLAG]: true }, filter, { $expr: { $and: [{ $gt: [{ $toString: `$${playerId}` }, { $literal: "" }] }, { $gt: [{ $toInt: `$${settled}` }, 0] }] } }],
+                $and: [
+                    { [DO_FLAG]: true },
+                    filter,
+                    {
+                        $expr: {
+                            $and: [
+                                { $gt: [{ $toString: `$${playerId}` }, { $literal: "" }] }, //
+                                { $gt: [{ $toInt: `$${settled}` }, 0] },
+                            ],
+                        },
+                    },
+                ],
             },
         },
         {
