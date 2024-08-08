@@ -2,7 +2,7 @@ import type { BaseLogger } from "@ldb/base-logger";
 import { Document, MongoClient, type ChangeStreamNameSpace, type Collection } from "@ldb/mongo";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
 import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD, DO_FLAG, DONE_FLAG, TIME_WARMING_PERIOD } from "../consts/summary-constants.js";
-import { getSourceNamespace, getTicketRoundIdExpr } from "../helpers/summary-config.js";
+import { getSourceNamespace } from "../helpers/summary-config.js";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import { version } from "../metadata.js";
 import { Dispatcher } from "../modules/dispatcher.js";
@@ -67,16 +67,39 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
 
     private async transform(summaryConfig: SC) {
         const sourceCollection = this.getSourceCollection(summaryConfig);
+        const { filter, aliases } = summaryConfig;
+        const { playerId, settled, time } = aliases;
+
+        const matchStage = {
+            $match: {
+                $and: [
+                    { [DO_FLAG]: true }, //
+                    filter,
+                    { $expr: { $gt: [{ $toString: `$${playerId}` }, { $literal: "" }] } },
+                    { $expr: { $gt: [{ $toInt: `$${settled}` }, 0] } },
+                ],
+            },
+        };
         const pipeline = this.prepareTransformPipeline(summaryConfig);
 
         let lastCount = 0;
         do {
             await this.setDoFlag(sourceCollection, summaryConfig);
-            await sourceCollection.aggregate(pipeline, AGGREGATE_OPTIONS).toArray();
+            await sourceCollection.aggregate([matchStage, ...pipeline], AGGREGATE_OPTIONS).toArray();
             lastCount = await this.setDoneFlag(sourceCollection);
         } while (lastCount >= BATCH_LIMIT * BATCH_TERMINATE_THRESHOLD);
 
-        await this.setWarmingPeriodUndone(sourceCollection, summaryConfig);
+        const matchWarmingStage = {
+            $match: {
+                $and: [
+                    { [time]: { $gte: new Date(Date.now() - TIME_WARMING_PERIOD) } },
+                    filter,
+                    { $expr: { $gt: [{ $toString: `$${playerId}` }, { $literal: "" }] } },
+                    { $expr: { $gt: [{ $toInt: `$${settled}` }, 0] } },
+                ],
+            },
+        };
+        await sourceCollection.aggregate([matchWarmingStage, ...pipeline], AGGREGATE_OPTIONS).toArray();
     }
 
     private getSourceCollection(summaryConfig: SC) {
@@ -114,13 +137,14 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
     }
 
     private async setDoFlag(collection: Collection, summaryConfig: SC) {
-        const settled = summaryConfig.aliases.settled;
+        const { time, settled } = summaryConfig.aliases;
 
         await collection
             .aggregate([
                 {
                     $match: {
                         $or: [{ [DONE_FLAG]: false }, { [DONE_FLAG]: null }],
+                        [time]: { $lt: new Date(Date.now() - TIME_WARMING_PERIOD) },
                         $expr: { $gt: [{ $toInt: `$${settled}` }, 0] },
                     },
                 },
@@ -140,42 +164,6 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
 
         this.logger.logDebug({ title: `${this.className}+${DONE_FLAG}`, message: `#=${matchedCount}  M=${modifiedCount}   (${collection.namespace})` });
         return modifiedCount;
-    }
-
-    private async setWarmingPeriodUndone(collection: Collection, summaryConfig: SC) {
-        const warmingFilter = await this.buildWarmingFilter(summaryConfig);
-
-        const { matchedCount, modifiedCount } = await collection.updateMany(
-            warmingFilter, //
-            { $set: { [DONE_FLAG]: false } }
-        );
-        this.logger.logDebug({ title: `${this.className}-${DONE_FLAG}`, message: `#=${matchedCount}  M=${modifiedCount}   (${collection.namespace})` });
-    }
-    private async buildWarmingFilter(summaryConfig: SC) {
-        const { db, coll } = summaryConfig.coll.round;
-        const roundCollection = this.mongo.db(db).collection(coll);
-
-        const timeAlias = summaryConfig.aliases.time;
-        const idExpr = summaryConfig.calc.roundId;
-
-        const warmingFilter = { [timeAlias]: { $gte: new Date(Date.now() - TIME_WARMING_PERIOD) } };
-
-        const warmingRoundId = await roundCollection
-            .aggregate<{ id: number }>([
-                { $match: warmingFilter }, //
-                { $sort: { [timeAlias]: 1 } },
-                { $project: { _id: 0, id: idExpr } },
-                { $limit: 1 },
-            ])
-            .map(({ id }) => id)
-            .toArray();
-
-        const roundIdExpr = getTicketRoundIdExpr(summaryConfig);
-        if (warmingRoundId.length) {
-            return { $expr: { $gte: [roundIdExpr, warmingRoundId[0]] } };
-        } else {
-            return warmingFilter;
-        }
     }
 
     private emitTransformed(summaryConfig: SC) {

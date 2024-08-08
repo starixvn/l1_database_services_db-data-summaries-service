@@ -1,15 +1,14 @@
 import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
-import { DO_FLAG } from "../consts/summary-constants.js";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import type { BetSummaryConfig } from "../types/summary-config.js";
 import { BaseTransformer, LOOKUP_CURRENCY, LOOKUP_EXCHANGE, LOOKUP_ROUND, LOOKUP_USER } from "./base-transformer.js";
 
 const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
-    const { gameConfigs, coll, filter, aliases, calc } = summaryConfig;
+    const { gameConfigs, coll, aliases, calc } = summaryConfig;
     const { gameId } = gameConfigs;
     const { round } = coll;
-    const { foreign, playerId, settled, time, subRoundId } = aliases;
+    const { foreign, playerId, time, subRoundId } = aliases;
     const { tickets, stake, payout, refund, roundId } = calc;
 
     const roundLookup: Document[] = [];
@@ -32,22 +31,6 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
     }
 
     return [
-        {
-            $match: {
-                $and: [
-                    { [DO_FLAG]: true },
-                    filter,
-                    {
-                        $expr: {
-                            $and: [
-                                { $gt: [{ $toString: `$${playerId}` }, { $literal: "" }] }, //
-                                { $gt: [{ $toInt: `$${settled}` }, 0] },
-                            ],
-                        },
-                    },
-                ],
-            },
-        },
         {
             $group: {
                 _id: { roundId: `$${foreign}`, subRoundId: `$${subRoundId}`, operatorId: "$operatorId", playerId: { $toString: `$${playerId}` } },

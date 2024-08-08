@@ -1,7 +1,7 @@
 import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
-import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD, DO_FLAG, DONE_FLAG, TIME_WARMING_PERIOD } from "../consts/summary-constants.js";
+import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD, DO_FLAG, DONE_FLAG } from "../consts/summary-constants.js";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import { version } from "../metadata.js";
 import { Subscriber } from "../modules/subscriber.js";
@@ -59,8 +59,6 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             await this.ticketSummariesCollection.aggregate(pipeline, AGGREGATE_OPTIONS).toArray();
             lastCount = await this.setDoneFlag(gameId);
         } while (lastCount >= BATCH_LIMIT * BATCH_TERMINATE_THRESHOLD);
-
-        await this.setWarmingPeriodUndone(gameId);
     }
 
     private getPipeline(gameId: number) {
@@ -201,14 +199,6 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
 
         this.logger.logDebug({ title: `${this.className}+${DONE_FLAG}`, message: `#=${matchedCount}  M=${modifiedCount}   (${gameId})` });
         return modifiedCount;
-    }
-
-    private async setWarmingPeriodUndone(gameId: number) {
-        const { matchedCount, modifiedCount } = await this.ticketSummariesCollection.updateMany(
-            { gameId, roundTime: { $gte: new Date(Date.now() - TIME_WARMING_PERIOD) } }, //
-            { $set: { [DONE_FLAG]: false } }
-        );
-        this.logger.logDebug({ title: `${this.className}-${DONE_FLAG}`, message: `#=${matchedCount}  M=${modifiedCount}   (${gameId})` });
     }
 
     subscribe<T extends RoundTransformer | TicketTransformer>(publisher: T) {
