@@ -32,9 +32,9 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
         {
             $lookup: {
                 from: "user_silos",
-                localField: "playerId",
+                localField: playerId,
                 foreignField: "playerId",
-                let: { operatorId: "$operatorId", playerId: "$playerId" },
+                let: { operatorId: "$operatorId", playerId: `$${playerId}` },
                 pipeline: [
                     { $match: { $expr: { $and: [{ $eq: ["$operatorId", "$$operatorId"] }, { $eq: ["$playerId", "$$playerId"] }] } } },
                     { $project: { _id: 0, currencyGroupId: 1, siteName: 1 } },
@@ -103,7 +103,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 stake,
                 payout,
                 refund,
-                playerId: { $toString: "$playerId" },
+                playerId: { $toString: `$${playerId}` },
                 currencyGroupId: 1,
                 siteName: 1,
                 __multiplier: 1,
