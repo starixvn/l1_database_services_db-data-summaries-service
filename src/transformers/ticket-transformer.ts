@@ -50,7 +50,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
         },
         {
             $group: {
-                _id: { roundId: `$${foreign}`, subRoundId: `$${subRoundId}`, operatorId: "$operatorId", playerId: { $toString: "$playerId" } },
+                _id: { roundId: `$${foreign}`, subRoundId: `$${subRoundId}`, operatorId: "$operatorId", playerId: { $toString: `$${playerId}` } },
                 _siloId: { $min: "$_id" },
                 time: { $max: "$time" },
                 roundTime: { $max: "$time" },
@@ -90,7 +90,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                 let: { operatorId: "$_id.operatorId", currency: "$currency", groupId: "$currencyGroupId" },
                 pipeline: [
                     { $match: { $expr: { $and: [{ $eq: ["$name", "$$currency"] }, { $eq: ["$partnerId", "$$operatorId"] }, { $eq: ["$groupId", "$$groupId"] }] } } },
-                    { $project: { _id: 0, code: 1, multiplier: 1 } },
+                    { $project: { _id: 0, code: 1, multiplier: 1, isTest: 1 } },
                     { $limit: 1 },
                 ],
                 as: LOOKUP_CURRENCY,
@@ -100,6 +100,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
         {
             $set: {
                 code: `$${LOOKUP_CURRENCY}.code`,
+                isTest: { $toInt: `$${LOOKUP_CURRENCY}.isTest` },
                 __multiplier: `$${LOOKUP_CURRENCY}.multiplier`,
                 [LOOKUP_CURRENCY]: "$$REMOVE",
             },
@@ -143,6 +144,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                 playerId: "$_id.playerId",
                 currencyGroupId: "$currencyGroupId",
                 siteName: "$siteName",
+                isTest: "$isTest",
                 "USD.stake": { $round: [{ $multiply: ["$stake", "$__multiplier", "$__USD"] }, 4] },
                 "USD.payout": { $round: [{ $multiply: ["$payout", "$__multiplier", "$__USD"] }, 4] },
                 "USD.refund": { $round: [{ $multiply: ["$refund", "$__multiplier", "$__USD"] }, 4] },

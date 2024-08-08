@@ -54,7 +54,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 let: { operatorId: "$operatorId", currency: "$currency", groupId: "$currencyGroupId" },
                 pipeline: [
                     { $match: { $expr: { $and: [{ $eq: ["$name", "$$currency"] }, { $eq: ["$partnerId", "$$operatorId"] }, { $eq: ["$groupId", "$$groupId"] }] } } },
-                    { $project: { _id: 0, code: 1, multiplier: 1 } },
+                    { $project: { _id: 0, code: 1, multiplier: 1, isTest: 1 } },
                     { $limit: 1 },
                 ],
                 as: LOOKUP_CURRENCY,
@@ -64,12 +64,13 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
         {
             $set: {
                 code: `$${LOOKUP_CURRENCY}.code`,
+                isTest: { $toInt: `$${LOOKUP_CURRENCY}.isTest` },
                 __multiplier: `$${LOOKUP_CURRENCY}.multiplier`,
                 [LOOKUP_CURRENCY]: "$$REMOVE",
             },
         },
 
-        { $set: { __date: { $dateFromParts: { year: { $year: "$time" }, month: { $month: "$time" }, day: { $dayOfMonth: "$time" } } } } },
+        { $set: { __date: { $dateFromParts: { year: { $year: `$${time}` }, month: { $month: `$${time}` }, day: { $dayOfMonth: `$${time}` } } } } },
         {
             $lookup: {
                 from: "exchange_silos",
@@ -106,6 +107,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 playerId: { $toString: `$${playerId}` },
                 currencyGroupId: 1,
                 siteName: 1,
+                isTest: 1,
                 __multiplier: 1,
                 __USD: 1,
                 __VND: 1,
@@ -123,6 +125,9 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 "VND.stake": { $round: [{ $multiply: ["$stake", "$__multiplier", "$__VND"] }, 4] },
                 "VND.payout": { $round: [{ $multiply: ["$payout", "$__multiplier", "$__VND"] }, 4] },
                 "VND.refund": { $round: [{ $multiply: ["$refund", "$__multiplier", "$__VND"] }, 4] },
+                __multiplier: "$$REMOVE",
+                __USD: "$$REMOVE",
+                __VND: "$$REMOVE",
             },
         },
         {
