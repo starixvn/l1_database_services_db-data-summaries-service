@@ -96,7 +96,6 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                                 },
                             },
                         },
-                        { $project: { _id: 0, time: 1, roundTime: 1, tickets: 1, stake: 1, payout: 1, winloss: 1, win: 1, loss: 1, refund: 1, playerId: 1 } },
                     ],
                     as: "silo",
                 },
@@ -114,6 +113,18 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     loss: { $sum: "$silo.loss" },
                     refund: { $sum: "$silo.refund" },
                     playerIds: { $addToSet: "$silo.playerId" },
+                    usdStake: { $sum: "$silo.USD.stake" },
+                    usdPayout: { $sum: "$silo.USD.payout" },
+                    usdWinloss: { $sum: "$silo.USD.winloss" },
+                    usdWin: { $sum: "$silo.USD.win" },
+                    usdLoss: { $sum: "$silo.USD.loss" },
+                    usdRefund: { $sum: "$silo.USD.refund" },
+                    vndStake: { $sum: "$silo.VND.stake" },
+                    vndPayout: { $sum: "$silo.VND.payout" },
+                    vndWinloss: { $sum: "$silo.VND.winloss" },
+                    vndWin: { $sum: "$silo.VND.win" },
+                    vndLoss: { $sum: "$silo.VND.loss" },
+                    vndRefund: { $sum: "$silo.VND.refund" },
                 },
             },
             {
@@ -134,6 +145,18 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     refund: { $round: ["$refund", 4] },
                     players: { $size: "$playerIds" },
                     playerIds: "$playerIds",
+                    "USD.stake": { $round: ["$usdStake", 4] },
+                    "USD.payout": { $round: ["$usdPayout", 4] },
+                    "USD.winloss": { $round: ["$usdWinloss", 4] },
+                    "USD.win": { $round: ["$usdWin", 4] },
+                    "USD.loss": { $round: ["$usdLoss", 4] },
+                    "USD.refund": { $round: ["$usdRefund", 4] },
+                    "VND.stake": { $round: ["$vndStake", 4] },
+                    "VND.payout": { $round: ["$vndPayout", 4] },
+                    "VND.winloss": { $round: ["$vndWinloss", 4] },
+                    "VND.win": { $round: ["$vndWin", 4] },
+                    "VND.loss": { $round: ["$vndLoss", 4] },
+                    "VND.refund": { $round: ["$vndRefund", 4] },
                     __v: version,
                 },
             },
@@ -172,7 +195,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
 
     private async setDoneFlag(gameId: number) {
         const { matchedCount, modifiedCount } = await this.ticketSummariesCollection.updateMany(
-            { [DO_FLAG]: true }, //
+            { [DO_FLAG]: true, gameId }, //
             { $set: { [DONE_FLAG]: true }, $unset: { [DO_FLAG]: 1 } }
         );
 
