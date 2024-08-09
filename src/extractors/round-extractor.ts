@@ -1,7 +1,7 @@
 import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
-import { DO_FLAG, DONE_FLAG } from "../consts/summary-flags.js";
+import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD, DO_FLAG, DONE_FLAG, TIME_WARMING_PERIOD } from "../consts/summary-constants.js";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import { version } from "../metadata.js";
 import { Subscriber } from "../modules/subscriber.js";
@@ -53,9 +53,14 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
     private async extract(gameId: number) {
         const pipeline = this.getPipeline(gameId);
 
-        await this.setDoSummaryFlag(gameId);
-        await this.ticketSummariesCollection.aggregate(pipeline, AGGREGATE_OPTIONS).tryNext();
-        await this.removeDoSummaryFlag(gameId);
+        let lastCount = 0;
+        do {
+            await this.setDoFlag(gameId);
+            await this.ticketSummariesCollection.aggregate(pipeline, AGGREGATE_OPTIONS).toArray();
+            lastCount = await this.setDoneFlag(gameId);
+        } while (lastCount >= BATCH_LIMIT * BATCH_TERMINATE_THRESHOLD);
+
+        await this.setWarmingPeriodUndone(gameId);
     }
 
     private getPipeline(gameId: number) {
@@ -91,7 +96,6 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                                 },
                             },
                         },
-                        { $project: { _id: 0, time: 1, roundTime: 1, tickets: 1, stake: 1, payout: 1, winloss: 1, win: 1, loss: 1, refund: 1, playerId: 1 } },
                     ],
                     as: "silo",
                 },
@@ -109,6 +113,18 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     loss: { $sum: "$silo.loss" },
                     refund: { $sum: "$silo.refund" },
                     playerIds: { $addToSet: "$silo.playerId" },
+                    usdStake: { $sum: "$silo.USD.stake" },
+                    usdPayout: { $sum: "$silo.USD.payout" },
+                    usdWinloss: { $sum: "$silo.USD.winloss" },
+                    usdWin: { $sum: "$silo.USD.win" },
+                    usdLoss: { $sum: "$silo.USD.loss" },
+                    usdRefund: { $sum: "$silo.USD.refund" },
+                    vndStake: { $sum: "$silo.VND.stake" },
+                    vndPayout: { $sum: "$silo.VND.payout" },
+                    vndWinloss: { $sum: "$silo.VND.winloss" },
+                    vndWin: { $sum: "$silo.VND.win" },
+                    vndLoss: { $sum: "$silo.VND.loss" },
+                    vndRefund: { $sum: "$silo.VND.refund" },
                 },
             },
             {
@@ -129,6 +145,18 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     refund: { $round: ["$refund", 4] },
                     players: { $size: "$playerIds" },
                     playerIds: "$playerIds",
+                    "USD.stake": { $round: ["$usdStake", 4] },
+                    "USD.payout": { $round: ["$usdPayout", 4] },
+                    "USD.winloss": { $round: ["$usdWinloss", 4] },
+                    "USD.win": { $round: ["$usdWin", 4] },
+                    "USD.loss": { $round: ["$usdLoss", 4] },
+                    "USD.refund": { $round: ["$usdRefund", 4] },
+                    "VND.stake": { $round: ["$vndStake", 4] },
+                    "VND.payout": { $round: ["$vndPayout", 4] },
+                    "VND.winloss": { $round: ["$vndWinloss", 4] },
+                    "VND.win": { $round: ["$vndWin", 4] },
+                    "VND.loss": { $round: ["$vndLoss", 4] },
+                    "VND.refund": { $round: ["$vndRefund", 4] },
                     __v: version,
                 },
             },
@@ -153,53 +181,34 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
         ] as const satisfies Document[];
     }
 
-    private async setDoSummaryFlag(gameId: number) {
-        const { matchedCount, upsertedCount, modifiedCount } = await this.ticketSummariesCollection.updateMany(
-            { $or: [{ [DONE_FLAG]: false }, { [DONE_FLAG]: null }], gameId },
-            { $set: { [DO_FLAG]: true } }
-        );
-
-        this.logger.logDebug({
-            title: `${this.className}+${DO_FLAG}`,
-            message: `#-${matchedCount}  I-${upsertedCount}  M-${modifiedCount}   (${gameId})`,
-        });
+    private async setDoFlag(gameId: number) {
+        await this.ticketSummariesCollection
+            .aggregate([
+                { $match: { $or: [{ [DONE_FLAG]: false }, { [DONE_FLAG]: null }], gameId } },
+                { $limit: BATCH_LIMIT },
+                { $project: { _id: 1, __archive: 1 } },
+                { $set: { [DO_FLAG]: true } },
+                { $merge: { into: this.ticketSummariesCollection.collectionName } },
+            ])
+            .toArray();
     }
 
-    private async removeDoSummaryFlag(gameId: number) {
-        /** Only mark done for tickets older than 1 day */
-        const timeWarmingFilter = { time: { $lt: new Date(Date.now() - 3_600_000) } };
-
-        /**
-         * Tickets in the same round will be marked done or excluded together
-         * Mark done for tickets belong to rounds before this round.
-         */
-        const warmingRound = await this.ticketSummariesCollection
-            .aggregate([{ $match: { [DO_FLAG]: true, gameId, ...timeWarmingFilter } }, { $project: { _id: 0, data: "$roundId" } }, { $sort: { data: -1 } }, { $limit: 1 }])
-            .map((_) => _.data)
-            .toArray();
-
-        /** */
-        const roundWarmingFilter = warmingRound.length ? { $expr: { $lte: ["$roundId", { $literal: warmingRound[0] }] } } : null;
-
-        /** If cannot determine the round, use time filter */
-        const doneFilter = roundWarmingFilter ?? timeWarmingFilter;
-
-        /** Remove DO & mark DONE for non-warming tickets */
-        const { matchedCount: matchedUpdated, modifiedCount: modifiedUpdated } = await this.ticketSummariesCollection.updateMany(
-            { [DO_FLAG]: true, gameId, ...doneFilter },
-            { $set: { [DONE_FLAG]: true } }
+    private async setDoneFlag(gameId: number) {
+        const { matchedCount, modifiedCount } = await this.ticketSummariesCollection.updateMany(
+            { [DO_FLAG]: true, gameId }, //
+            { $set: { [DONE_FLAG]: true }, $unset: { [DO_FLAG]: 1 } }
         );
 
-        /** Only remove DO for warming tickets */
-        const { matchedCount: matchedRemoved, modifiedCount: modifiedRemoved } = await this.ticketSummariesCollection.updateMany(
-            { [DO_FLAG]: true, gameId },
-            { $unset: { [DO_FLAG]: 1 } }
-        );
+        this.logger.logDebug({ title: `${this.className}+${DONE_FLAG}`, message: `#=${matchedCount}  M=${modifiedCount}   (${gameId})` });
+        return modifiedCount;
+    }
 
-        this.logger.logDebug({
-            title: `${this.className}-${DO_FLAG}`,
-            message: `+++  #-${matchedUpdated}  M-${modifiedUpdated}  +++    ---  #-${matchedRemoved}  M-${modifiedRemoved}  ---    (${gameId})`,
-        });
+    private async setWarmingPeriodUndone(gameId: number) {
+        const { matchedCount, modifiedCount } = await this.ticketSummariesCollection.updateMany(
+            { gameId, roundTime: { $gte: new Date(Date.now() - TIME_WARMING_PERIOD) } }, //
+            { $set: { [DONE_FLAG]: false } }
+        );
+        this.logger.logDebug({ title: `${this.className}-${DONE_FLAG}`, message: `#=${matchedCount}  M=${modifiedCount}   (${gameId})` });
     }
 
     subscribe<T extends RoundTransformer | TicketTransformer>(publisher: T) {

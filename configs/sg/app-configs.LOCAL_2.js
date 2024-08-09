@@ -1,9 +1,16 @@
+/** @typedef {import("@ldb/base-logger").SeverityLevel} SeverityLevel */
+/** @typedef {import("@ldb/sentry-logger").NodeOptions} NodeOptions */
+/** @typedef {import("@ldb/sentry-logger").SentryOptions} SentryOptions */
+/** @typedef {import("@ldb/skynex-logger").SkynexOptions} SkynexOptions */
+
 import { name, version } from "./metadata.js";
 
 export const environment = "SG-LOCAL-2";
 export const healthcheckPort = 5000;
 
+/** @type {SeverityLevel} */
 export const sentrySeverityLevel = "warning";
+/** @type {NodeOptions} */
 export const sentryNodeOptions = {
     dsn: "https://098a0c6ad1d74e8eb39ec7df895e59e0@sentry.lumigame.com/76",
     environment,
@@ -12,9 +19,12 @@ export const sentryNodeOptions = {
     },
     release: `${name}@${version}`,
 };
+/** @type {SentryOptions} */
 export const sentryOptions = {};
 
+/** @type {SeverityLevel} */
 export const skynexSeverityLevel = "warning";
+/** @type {SkynexOptions} */
 export const skynexOptions = {
     conversationIds: {
         telegram: -1001964283718,
@@ -22,6 +32,7 @@ export const skynexOptions = {
     },
 };
 
+/** @type {SeverityLevel} */
 export const terminalSeverityLevel = "log";
 
 const dbCred = "lmn_summary:LmnSummary";

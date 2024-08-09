@@ -37,6 +37,6 @@ export const database = {
 } as const;
 
 export const eventConfigs = {
-    SUMMARY_ROUND: 60_000,
-    SUMMARY_TIME: [60_000, 30_000],
+    SUMMARY_ROUND: [60_000, -5_000],
+    SUMMARY_TIME: [60_000, 25_000],
 } as const satisfies SchedulerConfigs;
