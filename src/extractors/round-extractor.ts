@@ -53,7 +53,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
     private async extract(gameId: number) {
         const pipeline = this.getPipeline();
         const matchStage = { $match: { [DO_FLAG]: true, gameId } };
-        
+
         let lastCount = 0;
         do {
             await this.setDoFlag(gameId);
@@ -105,6 +105,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             {
                 $group: {
                     _id: "$_id",
+                    _roundId: { $max: "$silo._roundId" },
                     time: { $min: { $ifNull: ["$silo.roundTime", "$silo.time"] } },
                     tickets: { $sum: "$silo.tickets" },
                     stake: { $sum: "$silo.stake" },
@@ -130,7 +131,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             },
             {
                 $project: {
-                    _id: 0,
+                    _id: "$_roundId",
                     time: "$time",
                     currency: { $ifNull: ["$_id.currency", { $literal: "" }] },
                     gameId: "$_id.gameId",
@@ -174,7 +175,6 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             {
                 $merge: {
                     into: this.roundSummariesNamespace,
-                    on: ["gameId", "currency", "operatorId", "siteId", "roundId"],
                     whenMatched: "replace",
                     whenNotMatched: "insert",
                 },
