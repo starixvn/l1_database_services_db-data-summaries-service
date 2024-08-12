@@ -1,15 +1,14 @@
 import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
-import { DO_FLAG } from "../consts/summary-constants.js";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import type { BetSummaryConfig } from "../types/summary-config.js";
 import { BaseTransformer, LOOKUP_CURRENCY, LOOKUP_EXCHANGE, LOOKUP_ROUND, LOOKUP_USER } from "./base-transformer.js";
 
 const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
-    const { gameConfigs, coll, filter, aliases, calc } = summaryConfig;
+    const { gameConfigs, coll, aliases, calc } = summaryConfig;
     const { gameId } = gameConfigs;
     const { round } = coll;
-    const { foreign, playerId, settled, time, subRoundId } = aliases;
+    const { foreign, playerId, time, subRoundId } = aliases;
     const { tickets, stake, payout, refund, roundId } = calc;
 
     const roundLookup: Document[] = [];
@@ -22,32 +21,16 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                     from: round.coll,
                     localField: "_id.roundId",
                     foreignField,
-                    pipeline: [{ $project: { _id: 0, time: `$${time}` } }, { $limit: 1 }],
+                    pipeline: [{ $project: { _id: 1, time: `$${time}` } }, { $limit: 1 }],
                     as: LOOKUP_ROUND,
                 },
             },
             { $unwind: { path: `$${LOOKUP_ROUND}`, preserveNullAndEmptyArrays: true } },
-            { $set: { roundTime: { $ifNull: [`$${LOOKUP_ROUND}.time`, "$roundTime"] }, [LOOKUP_ROUND]: "$$REMOVE" } }
+            { $set: { _roundId: `$${LOOKUP_ROUND}._id`, roundTime: { $ifNull: [`$${LOOKUP_ROUND}.time`, "$roundTime"] }, [LOOKUP_ROUND]: "$$REMOVE" } }
         );
     }
 
     return [
-        {
-            $match: {
-                $and: [
-                    { [DO_FLAG]: true },
-                    filter,
-                    {
-                        $expr: {
-                            $and: [
-                                { $gt: [{ $toString: `$${playerId}` }, { $literal: "" }] }, //
-                                { $gt: [{ $toInt: `$${settled}` }, 0] },
-                            ],
-                        },
-                    },
-                ],
-            },
-        },
         {
             $group: {
                 _id: { roundId: `$${foreign}`, subRoundId: `$${subRoundId}`, operatorId: "$operatorId", playerId: { $toString: `$${playerId}` } },
@@ -127,6 +110,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
         {
             $project: {
                 _id: "$_siloId",
+                _roundId: "$_roundId",
                 time: "$time",
                 roundTime: "$roundTime",
                 currency: "$currency",

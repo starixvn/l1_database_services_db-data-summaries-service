@@ -51,21 +51,22 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
     }
 
     private async extract(gameId: number) {
-        const pipeline = this.getPipeline(gameId);
+        const pipeline = this.getPipeline();
+        const matchStage = { $match: { [DO_FLAG]: true, gameId } };
 
         let lastCount = 0;
         do {
             await this.setDoFlag(gameId);
-            await this.ticketSummariesCollection.aggregate(pipeline, AGGREGATE_OPTIONS).toArray();
+            await this.ticketSummariesCollection.aggregate([matchStage, ...pipeline], AGGREGATE_OPTIONS).toArray();
             lastCount = await this.setDoneFlag(gameId);
         } while (lastCount >= BATCH_LIMIT * BATCH_TERMINATE_THRESHOLD);
 
-        await this.setWarmingPeriodUndone(gameId);
+        const matchWarmingStage = { $match: { time: { $gte: new Date(Date.now() - TIME_WARMING_PERIOD) }, gameId } };
+        await this.ticketSummariesCollection.aggregate([matchWarmingStage, ...pipeline], AGGREGATE_OPTIONS).toArray();
     }
 
-    private getPipeline(gameId: number) {
+    private getPipeline() {
         return [
-            { $match: { $and: [{ [DO_FLAG]: true, gameId }] } },
             {
                 $group: {
                     _id: {
@@ -104,6 +105,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             {
                 $group: {
                     _id: "$_id",
+                    _roundId: { $max: "$silo._roundId" },
                     time: { $min: { $ifNull: ["$silo.roundTime", "$silo.time"] } },
                     tickets: { $sum: "$silo.tickets" },
                     stake: { $sum: "$silo.stake" },
@@ -130,6 +132,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             {
                 $project: {
                     _id: 0,
+                    _roundId: "$_roundId",
                     time: "$time",
                     currency: { $ifNull: ["$_id.currency", { $literal: "" }] },
                     gameId: "$_id.gameId",
@@ -184,7 +187,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
     private async setDoFlag(gameId: number) {
         await this.ticketSummariesCollection
             .aggregate([
-                { $match: { $or: [{ [DONE_FLAG]: false }, { [DONE_FLAG]: null }], gameId } },
+                { $match: { $or: [{ [DONE_FLAG]: false }, { [DONE_FLAG]: null }], gameId, time: { $lt: new Date(Date.now() - TIME_WARMING_PERIOD) } } },
                 { $limit: BATCH_LIMIT },
                 { $project: { _id: 1, __archive: 1 } },
                 { $set: { [DO_FLAG]: true } },
@@ -201,14 +204,6 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
 
         this.logger.logDebug({ title: `${this.className}+${DONE_FLAG}`, message: `#=${matchedCount}  M=${modifiedCount}   (${gameId})` });
         return modifiedCount;
-    }
-
-    private async setWarmingPeriodUndone(gameId: number) {
-        const { matchedCount, modifiedCount } = await this.ticketSummariesCollection.updateMany(
-            { gameId, roundTime: { $gte: new Date(Date.now() - TIME_WARMING_PERIOD) } }, //
-            { $set: { [DONE_FLAG]: false } }
-        );
-        this.logger.logDebug({ title: `${this.className}-${DONE_FLAG}`, message: `#=${matchedCount}  M=${modifiedCount}   (${gameId})` });
     }
 
     subscribe<T extends RoundTransformer | TicketTransformer>(publisher: T) {

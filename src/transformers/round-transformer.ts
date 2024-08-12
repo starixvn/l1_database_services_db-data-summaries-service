@@ -1,34 +1,16 @@
 import type { BaseLogger } from "@ldb/base-logger";
 import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
-import { DO_FLAG } from "../consts/summary-constants.js";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import type { RoundSummaryConfig } from "../types/summary-config.js";
 import { BaseTransformer, LOOKUP_CURRENCY, LOOKUP_EXCHANGE, LOOKUP_USER } from "./base-transformer.js";
 
 const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
-    const { gameConfigs, aliases, filter, calc } = summaryConfig;
+    const { gameConfigs, aliases, calc } = summaryConfig;
     const { gameId } = gameConfigs;
-    const { playerId, settled, time, subRoundId } = aliases;
+    const { playerId, time, subRoundId } = aliases;
     const { roundId, tickets, stake, payout, refund } = calc;
 
     const pipeline: Document[] = [
-        {
-            $match: {
-                $and: [
-                    { [DO_FLAG]: true },
-                    filter,
-                    {
-                        $expr: {
-                            $and: [
-                                { $gt: [{ $toString: `$${playerId}` }, { $literal: "" }] }, //
-                                { $gt: [{ $toInt: `$${settled}` }, 0] },
-                            ],
-                        },
-                    },
-                ],
-            },
-        },
-
         {
             $lookup: {
                 from: "user_silos",
@@ -91,6 +73,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
         {
             $project: {
                 _id: 1,
+                _roundId: "$_id",
                 time: `$${time}`,
                 roundTime: `$${time}`,
                 currency: 1,

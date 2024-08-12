@@ -5,7 +5,6 @@ import { version } from "../metadata.js";
 import { TimeExtractor } from "./time-extractor.js";
 
 const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): Document[] => [
-    { $match: { "__archive.do_hourly": true } },
     { $set: { roundTime: { $ifNull: ["$roundTime", "$time"] } } },
     {
         $group: {
