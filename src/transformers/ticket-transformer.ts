@@ -21,12 +21,12 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                     from: round.coll,
                     localField: "_id.roundId",
                     foreignField,
-                    pipeline: [{ $project: { _id: 0, time: `$${time}` } }, { $limit: 1 }],
+                    pipeline: [{ $project: { _id: 1, time: `$${time}` } }, { $limit: 1 }],
                     as: LOOKUP_ROUND,
                 },
             },
             { $unwind: { path: `$${LOOKUP_ROUND}`, preserveNullAndEmptyArrays: true } },
-            { $set: { roundTime: { $ifNull: [`$${LOOKUP_ROUND}.time`, "$roundTime"] }, [LOOKUP_ROUND]: "$$REMOVE" } }
+            { $set: { _roundId: `$${LOOKUP_ROUND}._id`, roundTime: { $ifNull: [`$${LOOKUP_ROUND}.time`, "$roundTime"] }, [LOOKUP_ROUND]: "$$REMOVE" } }
         );
     }
 
@@ -110,6 +110,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
         {
             $project: {
                 _id: "$_siloId",
+                _roundId: "$_roundId",
                 time: "$time",
                 roundTime: "$roundTime",
                 currency: "$currency",

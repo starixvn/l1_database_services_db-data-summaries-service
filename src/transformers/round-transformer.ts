@@ -73,6 +73,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
         {
             $project: {
                 _id: 1,
+                _roundId: "$_id",
                 time: `$${time}`,
                 roundTime: `$${time}`,
                 currency: 1,
