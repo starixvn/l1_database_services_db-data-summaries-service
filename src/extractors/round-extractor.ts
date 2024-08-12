@@ -131,6 +131,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             },
             {
                 $project: {
+                    _id: 0,
                     _roundId: "$_roundId",
                     time: "$time",
                     currency: { $ifNull: ["$_id.currency", { $literal: "" }] },
