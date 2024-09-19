@@ -75,7 +75,15 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
     },
     {
         $project: {
-            _id: 0,
+            _id: {
+                $toHashedIndexKey: {
+                    gameId: "$_id.gameId",
+                    currency: "$_id.currency",
+                    operatorId: "$_id.operatorId",
+                    siteId: "$siteId",
+                    time: "$_id.time",
+                },
+            },
             time: "$_id.time",
             currency: "$_id.currency",
             gameId: "$_id.gameId",
@@ -103,6 +111,19 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
             "VND.loss": { $round: ["$vndLoss", 4] },
             "VND.refund": { $round: ["$vndRefund", 4] },
             __v: version,
+        },
+    },
+    {
+        $set: {
+            _id: {
+                $toObjectId: {
+                    $concat: [
+                        { $cond: [{ $lt: ["$_id", 0] }, "1", "0"] },
+                        { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_id" } } }] }] },
+                        { $toString: { $abs: "$_id" } },
+                    ],
+                },
+            },
         },
     },
     {
