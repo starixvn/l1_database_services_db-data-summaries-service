@@ -89,7 +89,7 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
             loss: { $round: ["$loss", 4] },
             refund: { $round: ["$refund", 4] },
             players: { $size: "$playerIds" },
-            playerIds: "$playerIds",
+            playerIds: { $sortArray: { input: "$playerIds", sortBy: 1 } },
             "USD.stake": { $round: ["$usdStake", 4] },
             "USD.payout": { $round: ["$usdPayout", 4] },
             "USD.winloss": { $round: ["$usdWinloss", 4] },
