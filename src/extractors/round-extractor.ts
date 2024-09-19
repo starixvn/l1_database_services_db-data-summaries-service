@@ -131,7 +131,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             },
             {
                 $project: {
-                    _id: 0,
+                    _id: "$$REMOVE",
                     _roundId: "$_roundId",
                     time: "$time",
                     currency: { $ifNull: ["$_id.currency", { $literal: "" }] },
@@ -164,6 +164,11 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                 },
             },
             {
+                $set: {
+                    _id: { $concat: [{ $toString: "$gameId" }, "~", "$currency", "~", "$operatorId", "~", "$siteId", "~", { $toString: "$roundId" }] },
+                },
+            },
+            {
                 $match: {
                     gameId: { $ne: null },
                     currency: { $ne: null },
@@ -176,7 +181,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             {
                 $merge: {
                     into: this.roundSummariesNamespace,
-                    on: ["gameId", "currency", "operatorId", "siteId", "roundId"],
+                    on: ["_id"],
                     whenMatched: "replace",
                     whenNotMatched: "insert",
                 },
