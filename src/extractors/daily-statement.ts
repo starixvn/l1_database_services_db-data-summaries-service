@@ -5,7 +5,6 @@ import { version } from "../metadata.js";
 import { TimeExtractor } from "./time-extractor.js";
 
 const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): Document[] => [
-    { $set: { roundTime: { $ifNull: ["$roundTime", "$time"] } } },
     {
         $group: {
             _id: {
