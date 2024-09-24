@@ -80,7 +80,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 code: 1,
                 gameId: { $literal: gameId },
                 operatorId: 1,
-                siteId: { $cond: [{ $eq: ["$operatorId", { $literal: "SabaPlay" }] }, "$siteId", "$$REMOVE"] },
+                siteId: { $cond: [{ $eq: ["$operatorId", { $literal: "SabaPlay" }] }, "$siteId", ""] },
                 roundId,
                 subRoundId: `$${subRoundId}`,
                 tickets,

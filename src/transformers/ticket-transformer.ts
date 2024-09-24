@@ -117,7 +117,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                 code: "$code",
                 gameId: { $literal: gameId },
                 operatorId: "$_id.operatorId",
-                siteId: { $cond: [{ $eq: ["$_id.operatorId", { $literal: "SabaPlay" }] }, "$siteId", "$$REMOVE"] },
+                siteId: { $cond: [{ $eq: ["$_id.operatorId", { $literal: "SabaPlay" }] }, "$siteId", ""] },
                 roundId: "$_id.roundId",
                 subRoundId: "$_id.subRoundId",
                 tickets: "$tickets",
