@@ -25,7 +25,7 @@ const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetName
     {
         $group: {
             _id: "$_id",
-            time: { $first: { $dateFromParts: { year: { $year: "$roundTime" }, month: { $month: "$roundTime" }, day: { $dayOfMonth: "$roundTime" } } } },
+            time: { $first: { $dateFromParts: { year: { $year: "$data.roundTime" }, month: { $month: "$data.roundTime" }, day: { $dayOfMonth: "$data.roundTime" } } } },
             gameId: { $first: "$data.gameId" },
             operatorId: { $first: "$data.operatorId" },
             siteId: { $first: "$data.siteId" },
