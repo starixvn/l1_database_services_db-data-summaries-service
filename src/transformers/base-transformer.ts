@@ -121,17 +121,143 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
                 playerId: { $ne: null },
             },
         } as const satisfies Document;
-        const versionStage = { $set: { __v: version } };
+        const metaStages = [
+            {
+                $set: {
+                    __v: version,
+                    "_ids.roundSummary": {
+                        $toHashedIndexKey: {
+                            gameId: "$gameId",
+                            currency: "$currency",
+                            operatorId: "$operatorId",
+                            siteId: "$siteId",
+                            roundId: "$roundId",
+                        },
+                    },
+                    "_ids.hourlySummary": {
+                        $toHashedIndexKey: {
+                            time: {
+                                $dateFromParts: {
+                                    year: { $year: "$roundTime" },
+                                    month: { $month: "$roundTime" },
+                                    day: { $dayOfMonth: "$roundTime" },
+                                    hour: { $hour: "$roundTime" },
+                                },
+                            },
+                            currency: "$currency",
+                            gameId: "$gameId",
+                            operatorId: "$operatorId",
+                            siteId: "$siteId",
+                        },
+                    },
+                    "_ids.dailySummary": {
+                        $toHashedIndexKey: {
+                            time: {
+                                $dateFromParts: {
+                                    year: { $year: "$roundTime" },
+                                    month: { $month: "$roundTime" },
+                                    day: { $dayOfMonth: "$roundTime" },
+                                },
+                            },
+                            currency: "$currency",
+                            gameId: "$gameId",
+                            operatorId: "$operatorId",
+                            siteId: "$siteId",
+                        },
+                    },
+                    "_ids.hourlyStatement": {
+                        $toHashedIndexKey: {
+                            time: {
+                                $dateFromParts: {
+                                    year: { $year: "$roundTime" },
+                                    month: { $month: "$roundTime" },
+                                    day: { $dayOfMonth: "$roundTime" },
+                                    hour: { $hour: "$roundTime" },
+                                },
+                            },
+                            gameId: "$gameId",
+                            operatorId: "$operatorId",
+                            siteId: "$siteId",
+                            playerId: "$playerId",
+                        },
+                    },
+                    "_ids.dailyStatement": {
+                        $toHashedIndexKey: {
+                            time: {
+                                $dateFromParts: {
+                                    year: { $year: "$roundTime" },
+                                    month: { $month: "$roundTime" },
+                                    day: { $dayOfMonth: "$roundTime" },
+                                },
+                            },
+                            gameId: "$gameId",
+                            operatorId: "$operatorId",
+                            siteId: "$siteId",
+                            playerId: "$playerId",
+                        },
+                    },
+                },
+            },
+            {
+                $set: {
+                    "_ids.roundSummary": {
+                        $toObjectId: {
+                            $concat: [
+                                { $cond: [{ $lt: ["$_ids.roundSummary", 0] }, "1", "0"] },
+                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.roundSummary" } } }] }] },
+                                { $toString: { $abs: "$_ids.roundSummary" } },
+                            ],
+                        },
+                    },
+                    "_ids.hourlySummary": {
+                        $toObjectId: {
+                            $concat: [
+                                { $cond: [{ $lt: ["$_ids.hourlySummary", 0] }, "1", "0"] },
+                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.hourlySummary" } } }] }] },
+                                { $toString: { $abs: "$_ids.hourlySummary" } },
+                            ],
+                        },
+                    },
+                    "_ids.dailySummary": {
+                        $toObjectId: {
+                            $concat: [
+                                { $cond: [{ $lt: ["$_ids.dailySummary", 0] }, "1", "0"] },
+                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.dailySummary" } } }] }] },
+                                { $toString: { $abs: "$_ids.dailySummary" } },
+                            ],
+                        },
+                    },
+                    "_ids.hourlyStatement": {
+                        $toObjectId: {
+                            $concat: [
+                                { $cond: [{ $lt: ["$_ids.hourlyStatement", 0] }, "1", "0"] },
+                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.hourlyStatement" } } }] }] },
+                                { $toString: { $abs: "$_ids.hourlyStatement" } },
+                            ],
+                        },
+                    },
+                    "_ids.dailyStatement": {
+                        $toObjectId: {
+                            $concat: [
+                                { $cond: [{ $lt: ["$_ids.dailyStatement", 0] }, "1", "0"] },
+                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.dailyStatement" } } }] }] },
+                                { $toString: { $abs: "$_ids.dailyStatement" } },
+                            ],
+                        },
+                    },
+                },
+            },
+        ];
         const mergeStage = {
             $merge: {
                 into: this.ticketSummariesNamespace,
-                on: ["gameId", "roundId", "subRoundId", "operatorId", "playerId"],
+                on: "_id",
                 whenMatched: "replace",
                 whenNotMatched: "insert",
             },
         } as const satisfies Document;
 
-        pipeline.push(filterStage, versionStage, mergeStage);
+        pipeline.push(filterStage, ...metaStages, mergeStage);
 
         return pipeline;
     }

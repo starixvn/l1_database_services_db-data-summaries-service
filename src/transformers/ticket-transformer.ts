@@ -19,7 +19,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
             {
                 $lookup: {
                     from: round.coll,
-                    localField: "_id.roundId",
+                    localField: "roundId",
                     foreignField,
                     pipeline: [{ $project: { _id: 1, time: `$${time}` } }, { $limit: 1 }],
                     as: LOOKUP_ROUND,
@@ -32,13 +32,16 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
 
     return [
         {
-            $group: {
-                _id: { roundId: `$${foreign}`, subRoundId: `$${subRoundId}`, operatorId: "$operatorId", playerId: { $toString: `$${playerId}` } },
-                _siloId: { $min: "$_id" },
-                time: { $max: "$time" },
-                roundTime: { $max: "$time" },
-                siteId: { $max: "$siteId" },
-                currency: { $max: "$currency" },
+            $project: {
+                _id: 1,
+                roundId: `$${foreign}`,
+                subRoundId: `$${subRoundId}`,
+                operatorId: 1,
+                playerId: { $toString: `$${playerId}` },
+                time: 1,
+                roundTime: "$time",
+                siteId: 1,
+                currency: 1,
                 tickets: { $sum: tickets },
                 stake: { $sum: stake },
                 payout: { $sum: payout },
@@ -51,9 +54,9 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
         {
             $lookup: {
                 from: "user_silos",
-                localField: "_id.playerId",
+                localField: "playerId",
                 foreignField: "playerId",
-                let: { operatorId: "$_id.operatorId", playerId: "$_id.playerId" },
+                let: { operatorId: "$operatorId", playerId: "$playerId" },
                 pipeline: [
                     { $match: { $expr: { $and: [{ $eq: ["$operatorId", "$$operatorId"] }, { $eq: ["$playerId", "$$playerId"] }] } } },
                     { $project: { _id: 0, currencyGroupId: 1, siteName: 1 } },
@@ -70,7 +73,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                 from: "currencies",
                 localField: "currency",
                 foreignField: "name",
-                let: { operatorId: "$_id.operatorId", currency: "$currency" },
+                let: { operatorId: "$operatorId", currency: "$currency" },
                 pipeline: [
                     { $match: { $expr: { $and: [{ $eq: ["$name", "$$currency"] }, { $eq: ["$partnerId", "$$operatorId"] }] } } },
                     { $project: { _id: 0, code: 1, multiplier: 1, isTest: 1 } },
@@ -109,26 +112,26 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
 
         {
             $project: {
-                _id: "$_siloId",
-                _roundId: "$_roundId",
-                time: "$time",
-                roundTime: "$roundTime",
-                currency: "$currency",
-                code: "$code",
+                _id: 1,
+                _roundId: 1,
+                time: 1,
+                roundTime: 1,
+                currency: 1,
+                code: 1,
                 gameId: { $literal: gameId },
-                operatorId: "$_id.operatorId",
-                siteId: { $cond: [{ $eq: ["$_id.operatorId", { $literal: "SabaPlay" }] }, "$siteId", ""] },
-                roundId: "$_id.roundId",
-                subRoundId: "$_id.subRoundId",
-                tickets: "$tickets",
+                operatorId: 1,
+                siteId: { $cond: [{ $eq: ["$operatorId", { $literal: "SabaPlay" }] }, "$siteId", ""] },
+                roundId: 1,
+                subRoundId: 1,
+                tickets: 1,
                 stake: { $round: ["$stake", 4] },
                 payout: { $round: ["$payout", 4] },
                 winloss: { $round: [{ $subtract: ["$payout", "$stake"] }, 4] },
                 refund: { $round: ["$refund", 4] },
-                playerId: "$_id.playerId",
-                currencyGroupId: "$currencyGroupId",
-                siteName: "$siteName",
-                isTest: "$isTest",
+                playerId: 1,
+                currencyGroupId: 1,
+                siteName: 1,
+                isTest: 1,
                 "USD.stake": { $round: [{ $multiply: ["$stake", "$__multiplier", "$__USD"] }, 4] },
                 "USD.payout": { $round: [{ $multiply: ["$payout", "$__multiplier", "$__USD"] }, 4] },
                 "USD.refund": { $round: [{ $multiply: ["$refund", "$__multiplier", "$__USD"] }, 4] },
