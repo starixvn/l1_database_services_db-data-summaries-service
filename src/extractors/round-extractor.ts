@@ -69,35 +69,14 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
         return [
             {
                 $group: {
-                    _id: {
-                        gameId: "$gameId",
-                        roundId: "$roundId",
-                        currency: "$currency",
-                        operatorId: "$operatorId",
-                        siteId: "$siteId",
-                    },
+                    _id: "$_ids.roundSummary",
                 },
             },
             {
                 $lookup: {
                     from: this.ticketSummariesNamespace.coll,
-                    localField: "_id.gameId",
-                    foreignField: "gameId",
-                    let: { roundId: "$_id.roundId", operatorId: "$_id.operatorId", siteId: "$_id.siteId", currency: "$_id.currency" },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $and: [
-                                        { $eq: ["$roundId", "$$roundId"] },
-                                        { $eq: ["$operatorId", "$$operatorId"] },
-                                        { $eq: ["$siteId", "$$siteId"] },
-                                        { $eq: ["$currency", "$$currency"] },
-                                    ],
-                                },
-                            },
-                        },
-                    ],
+                    localField: "_id",
+                    foreignField: "_ids.roundSummary",
                     as: "silo",
                 },
             },
@@ -107,6 +86,11 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     _id: "$_id",
                     _roundId: { $max: "$silo._roundId" },
                     time: { $min: { $ifNull: ["$silo.roundTime", "$silo.time"] } },
+                    currency: { $first: { $ifNull: ["$silo.currency", { $literal: "" }] } },
+                    gameId: { $first: "$silo.gameId" },
+                    operatorId: { $first: { $ifNull: ["$silo.operatorId", { $literal: "" }] } },
+                    siteId: { $first: { $ifNull: ["$silo.siteId", { $literal: "" }] } },
+                    roundId: { $first: "$silo.roundId" },
                     tickets: { $sum: "$silo.tickets" },
                     stake: { $sum: "$silo.stake" },
                     payout: { $sum: "$silo.payout" },
@@ -131,15 +115,15 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             },
             {
                 $project: {
-                    _id: "$$REMOVE",
-                    _roundId: "$_roundId",
-                    time: "$time",
-                    currency: { $ifNull: ["$_id.currency", { $literal: "" }] },
-                    gameId: "$_id.gameId",
-                    operatorId: { $ifNull: ["$_id.operatorId", { $literal: "" }] },
-                    siteId: { $ifNull: ["$_id.siteId", { $literal: "" }] },
-                    roundId: "$_id.roundId",
-                    tickets: "$tickets",
+                    _id: 1,
+                    _roundId: 1,
+                    time: 1,
+                    currency: 1,
+                    gameId: 1,
+                    operatorId: 1,
+                    siteId: 1,
+                    roundId: 1,
+                    tickets: 1,
                     stake: { $round: ["$stake", 4] },
                     payout: { $round: ["$payout", 4] },
                     winloss: { $round: ["$winloss", 4] },
@@ -161,11 +145,59 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     "VND.loss": { $round: ["$vndLoss", 4] },
                     "VND.refund": { $round: ["$vndRefund", 4] },
                     __v: version,
+                    "_ids.hourlySummary": {
+                        $toHashedIndexKey: {
+                            time: {
+                                $dateFromParts: {
+                                    year: { $year: "$time" },
+                                    month: { $month: "$time" },
+                                    day: { $dayOfMonth: "$time" },
+                                    hour: { $hour: "$time" },
+                                },
+                            },
+                            currency: "$currency",
+                            gameId: "$gameId",
+                            operatorId: "$operatorId",
+                            siteId: "$siteId",
+                        },
+                    },
+                    "_ids.dailySummary": {
+                        $toHashedIndexKey: {
+                            time: {
+                                $dateFromParts: {
+                                    year: { $year: "$time" },
+                                    month: { $month: "$time" },
+                                    day: { $dayOfMonth: "$time" },
+                                },
+                            },
+                            currency: "$currency",
+                            gameId: "$gameId",
+                            operatorId: "$operatorId",
+                            siteId: "$siteId",
+                        },
+                    },
                 },
             },
             {
                 $set: {
-                    _id: { $concat: [{ $toString: "$gameId" }, "~", "$currency", "~", "$operatorId", "~", "$siteId", "~", { $toString: "$roundId" }] },
+                    "_ids.hourlySummary": {
+                        $toObjectId: {
+                            $concat: [
+                                { $cond: [{ $lt: ["$_ids.hourlySummary", 0] }, "1", "0"] },
+                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.hourlySummary" } } }] }] },
+                                { $toString: { $abs: "$_ids.hourlySummary" } },
+                            ],
+                        },
+                    },
+                    "_ids.dailySummary": {
+                        $toObjectId: {
+                            $concat: [
+                                { $cond: [{ $lt: ["$_ids.dailySummary", 0] }, "1", "0"] },
+                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.dailySummary" } } }] }] },
+                                { $toString: { $abs: "$_ids.dailySummary" } },
+                            ],
+                        },
+                    },
                 },
             },
             {
@@ -181,7 +213,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             {
                 $merge: {
                     into: this.roundSummariesNamespace,
-                    on: ["_id"],
+                    on: "_id",
                     whenMatched: "replace",
                     whenNotMatched: "insert",
                 },

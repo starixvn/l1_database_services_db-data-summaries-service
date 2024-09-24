@@ -9,44 +9,15 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
     {
         $group: {
             _id: {
-                time: { $dateFromParts: { year: { $year: "$roundTime" }, month: { $month: "$roundTime" }, day: { $dayOfMonth: "$roundTime" }, hour: { $hour: "$roundTime" } } },
-                timeTo: {
-                    $dateFromParts: {
-                        year: { $year: "$roundTime" },
-                        month: { $month: "$roundTime" },
-                        day: { $dayOfMonth: "$roundTime" },
-                        hour: { $add: [{ $hour: "$roundTime" }, 1] },
-                    },
-                },
-                gameId: "$gameId",
-                operatorId: "$operatorId",
-                siteId: "$siteId",
-                playerId: "$playerId",
+                _id: "$_ids.hourlyStatement",
             },
-            currency: { $first: "$currency" },
         },
     },
     {
         $lookup: {
             from: sourceNamespace.coll,
-            localField: "_id.gameId",
-            foreignField: "gameId",
-            let: { time: "$_id.time", timeTo: "$_id.timeTo", operatorId: "$_id.operatorId", siteId: "$_id.siteId", playerId: "$_id.playerId" },
-            pipeline: [
-                {
-                    $match: {
-                        $expr: {
-                            $and: [
-                                { $gte: [{ $ifNull: ["$roundTime", "$time"] }, "$$time"] },
-                                { $lt: [{ $ifNull: ["$roundTime", "$time"] }, "$$timeTo"] },
-                                { $eq: ["$operatorId", "$$operatorId"] },
-                                { $eq: ["$siteId", "$$siteId"] },
-                                { $eq: ["$playerId", "$$playerId"] },
-                            ],
-                        },
-                    },
-                },
-            ],
+            localField: "_id",
+            foreignField: "_ids.hourlyStatement",
             as: "data",
         },
     },
@@ -54,7 +25,14 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
     {
         $group: {
             _id: "$_id",
-            currency: { $first: "$currency" },
+            time: {
+                $first: { $dateFromParts: { year: { $year: "$roundTime" }, month: { $month: "$roundTime" }, day: { $dayOfMonth: "$roundTime" }, hour: { $hour: "$roundTime" } } },
+            },
+            gameId: { $first: "$data.gameId" },
+            operatorId: { $first: "$data.operatorId" },
+            siteId: { $first: "$data.siteId" },
+            playerId: { $first: "$data.playerId" },
+            currency: { $first: "$data.currency" },
             tickets: { $sum: "$data.tickets" },
             stake: { $sum: "$data.stake" },
             payout: { $sum: "$data.payout" },
@@ -85,22 +63,14 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
     },
     {
         $project: {
-            _id: {
-                $toHashedIndexKey: {
-                    gameId: "$_id.gameId",
-                    operatorId: "$_id.operatorId",
-                    playerId: "$_id.playerId",
-                    siteId: "$siteId",
-                    time: "$_id.time",
-                },
-            },
-            time: "$_id.time",
-            currency: "$currency",
-            gameId: "$_id.gameId",
-            operatorId: "$_id.operatorId",
-            siteId: "$siteId",
-            playerId: "$_id.playerId",
-            tickets: "$tickets",
+            _id: 1,
+            time: 1,
+            currency: 1,
+            gameId: 1,
+            operatorId: 1,
+            siteId: 1,
+            playerId: 1,
+            tickets: 1,
             stake: { $round: ["$stake", 4] },
             payout: { $round: ["$payout", 4] },
             winloss: { $round: ["$winloss", 4] },
@@ -125,22 +95,9 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
         },
     },
     {
-        $set: {
-            _id: {
-                $toObjectId: {
-                    $concat: [
-                        { $cond: [{ $lt: ["$_id", 0] }, "1", "0"] },
-                        { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_id" } } }] }] },
-                        { $toString: { $abs: "$_id" } },
-                    ],
-                },
-            },
-        },
-    },
-    {
         $merge: {
             into: targetNamespace,
-            on: ["gameId", "operatorId", "playerId", "siteId", "time"],
+            on: "_id",
             whenMatched: "replace",
             whenNotMatched: "insert",
         },

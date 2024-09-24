@@ -134,37 +134,6 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
                             roundId: "$roundId",
                         },
                     },
-                    "_ids.hourlySummary": {
-                        $toHashedIndexKey: {
-                            time: {
-                                $dateFromParts: {
-                                    year: { $year: "$roundTime" },
-                                    month: { $month: "$roundTime" },
-                                    day: { $dayOfMonth: "$roundTime" },
-                                    hour: { $hour: "$roundTime" },
-                                },
-                            },
-                            currency: "$currency",
-                            gameId: "$gameId",
-                            operatorId: "$operatorId",
-                            siteId: "$siteId",
-                        },
-                    },
-                    "_ids.dailySummary": {
-                        $toHashedIndexKey: {
-                            time: {
-                                $dateFromParts: {
-                                    year: { $year: "$roundTime" },
-                                    month: { $month: "$roundTime" },
-                                    day: { $dayOfMonth: "$roundTime" },
-                                },
-                            },
-                            currency: "$currency",
-                            gameId: "$gameId",
-                            operatorId: "$operatorId",
-                            siteId: "$siteId",
-                        },
-                    },
                     "_ids.hourlyStatement": {
                         $toHashedIndexKey: {
                             time: {
@@ -206,24 +175,6 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
                                 { $cond: [{ $lt: ["$_ids.roundSummary", 0] }, "1", "0"] },
                                 { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.roundSummary" } } }] }] },
                                 { $toString: { $abs: "$_ids.roundSummary" } },
-                            ],
-                        },
-                    },
-                    "_ids.hourlySummary": {
-                        $toObjectId: {
-                            $concat: [
-                                { $cond: [{ $lt: ["$_ids.hourlySummary", 0] }, "1", "0"] },
-                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.hourlySummary" } } }] }] },
-                                { $toString: { $abs: "$_ids.hourlySummary" } },
-                            ],
-                        },
-                    },
-                    "_ids.dailySummary": {
-                        $toObjectId: {
-                            $concat: [
-                                { $cond: [{ $lt: ["$_ids.dailySummary", 0] }, "1", "0"] },
-                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.dailySummary" } } }] }] },
-                                { $toString: { $abs: "$_ids.dailySummary" } },
                             ],
                         },
                     },
