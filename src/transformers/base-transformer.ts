@@ -136,6 +136,10 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
                     },
                     "_ids.hourlyStatement": {
                         $toHashedIndexKey: {
+                            gameId: "$gameId",
+                            operatorId: "$operatorId",
+                            playerId: "$playerId",
+                            siteId: "$siteId",
                             time: {
                                 $dateFromParts: {
                                     year: { $year: "$roundTime" },
@@ -144,14 +148,14 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
                                     hour: { $hour: "$roundTime" },
                                 },
                             },
-                            gameId: "$gameId",
-                            operatorId: "$operatorId",
-                            siteId: "$siteId",
-                            playerId: "$playerId",
                         },
                     },
                     "_ids.dailyStatement": {
                         $toHashedIndexKey: {
+                            gameId: "$gameId",
+                            operatorId: "$operatorId",
+                            playerId: "$playerId",
+                            siteId: "$siteId",
                             time: {
                                 $dateFromParts: {
                                     year: { $year: "$roundTime" },
@@ -159,10 +163,6 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
                                     day: { $dayOfMonth: "$roundTime" },
                                 },
                             },
-                            gameId: "$gameId",
-                            operatorId: "$operatorId",
-                            siteId: "$siteId",
-                            playerId: "$playerId",
                         },
                     },
                 },

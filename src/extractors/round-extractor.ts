@@ -147,6 +147,10 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     __v: version,
                     "_ids.hourlySummary": {
                         $toHashedIndexKey: {
+                            gameId: "$gameId",
+                            currency: "$currency",
+                            operatorId: "$operatorId",
+                            siteId: "$siteId",
                             time: {
                                 $dateFromParts: {
                                     year: { $year: "$time" },
@@ -155,14 +159,14 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                                     hour: { $hour: "$time" },
                                 },
                             },
-                            currency: "$currency",
-                            gameId: "$gameId",
-                            operatorId: "$operatorId",
-                            siteId: "$siteId",
                         },
                     },
                     "_ids.dailySummary": {
                         $toHashedIndexKey: {
+                            gameId: "$gameId",
+                            currency: "$currency",
+                            operatorId: "$operatorId",
+                            siteId: "$siteId",
                             time: {
                                 $dateFromParts: {
                                     year: { $year: "$time" },
@@ -170,10 +174,6 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                                     day: { $dayOfMonth: "$time" },
                                 },
                             },
-                            currency: "$currency",
-                            gameId: "$gameId",
-                            operatorId: "$operatorId",
-                            siteId: "$siteId",
                         },
                     },
                 },
