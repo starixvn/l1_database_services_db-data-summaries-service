@@ -21,7 +21,7 @@ export class TimeExtractor<Event extends keyof TimeInitiatorEvents> extends Subs
         private readonly targetNamespace: ChangeStreamNameSpace,
         private readonly pipelineFactory: TimePipelineFactory,
         private readonly config: TimeExtractorConfig<Event>,
-        logger: BaseLogger
+        logger: BaseLogger,
     ) {
         super(logger);
         this.selfBound();
@@ -92,7 +92,7 @@ export class TimeExtractor<Event extends keyof TimeInitiatorEvents> extends Subs
 
         const { matchedCount, upsertedCount, modifiedCount } = await this.sourceCollection.updateMany(
             { [doFlag]: true }, //
-            [{ $set: { [doFlag]: "$$REMOVE", [flag]: true } }]
+            [{ $set: { [doFlag]: "$$REMOVE", [flag]: true } }],
         );
 
         this.logger.logDebug({

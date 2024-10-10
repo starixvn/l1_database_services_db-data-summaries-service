@@ -26,7 +26,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                 },
             },
             { $unwind: { path: `$${LOOKUP_ROUND}`, preserveNullAndEmptyArrays: true } },
-            { $set: { _roundId: `$${LOOKUP_ROUND}._id`, roundTime: { $ifNull: [`$${LOOKUP_ROUND}.time`, "$roundTime"] }, [LOOKUP_ROUND]: "$$REMOVE" } }
+            { $set: { _roundId: `$${LOOKUP_ROUND}._id`, roundTime: { $ifNull: [`$${LOOKUP_ROUND}.time`, "$roundTime"] }, [LOOKUP_ROUND]: "$$REMOVE" } },
         );
     }
 

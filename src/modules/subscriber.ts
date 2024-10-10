@@ -4,7 +4,7 @@ import { GenericListener, TypedEventEmitter } from "@ldb/types";
 export class Subscriber<
     PubEvent extends string,
     PubEventDesc extends Record<PubEvent, GenericListener>,
-    Publisher extends TypedEventEmitter<PubEventDesc> = TypedEventEmitter<PubEventDesc>
+    Publisher extends TypedEventEmitter<PubEventDesc> = TypedEventEmitter<PubEventDesc>,
 > {
     private readonly publishers: Set<Publisher> = new Set();
 

@@ -5,7 +5,7 @@ export class Dispatcher<
     EventDescs extends EventsDescription,
     PubEvent extends string,
     PubEventDesc extends Record<PubEvent, GenericListener>,
-    Publisher extends TypedEventEmitter<PubEventDesc> = TypedEventEmitter<PubEventDesc>
+    Publisher extends TypedEventEmitter<PubEventDesc> = TypedEventEmitter<PubEventDesc>,
 > extends TypedEventEmitter<EventDescs> {
     private readonly publishers: Set<Publisher> = new Set();
 

@@ -22,7 +22,9 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
     {
         $group: {
             _id: "$_id",
-            time: { $first: { $dateFromParts: { year: { $year: "$data.time" }, month: { $month: "$data.time" }, day: { $dayOfMonth: "$data.time" }, hour: { $hour: "$data.time" } } } },
+            time: {
+                $first: { $dateFromParts: { year: { $year: "$data.time" }, month: { $month: "$data.time" }, day: { $dayOfMonth: "$data.time" }, hour: { $hour: "$data.time" } } },
+            },
             currency: { $first: "$data.currency" },
             gameId: { $first: "$data.gameId" },
             operatorId: { $first: "$data.operatorId" },

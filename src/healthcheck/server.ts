@@ -9,7 +9,10 @@ export class HealthcheckServer {
         return this.constructor.name;
     }
 
-    constructor(private readonly healthcheckPort: number, private readonly logger: BaseLogger) {
+    constructor(
+        private readonly healthcheckPort: number,
+        private readonly logger: BaseLogger,
+    ) {
         this.selfBound();
 
         this.server = http.createServer();

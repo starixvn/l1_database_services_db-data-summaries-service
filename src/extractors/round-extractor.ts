@@ -17,7 +17,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
         private readonly mongo: MongoClient,
         private readonly ticketSummariesNamespace: ChangeStreamNameSpace,
         private readonly roundSummariesNamespace: ChangeStreamNameSpace,
-        logger: BaseLogger
+        logger: BaseLogger,
     ) {
         super(logger);
         this.selfBound();
@@ -236,7 +236,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
     private async setDoneFlag(gameId: number) {
         const { matchedCount, modifiedCount } = await this.ticketSummariesCollection.updateMany(
             { [DO_FLAG]: true, gameId }, //
-            { $set: { [DONE_FLAG]: true }, $unset: { [DO_FLAG]: 1 } }
+            { $set: { [DONE_FLAG]: true }, $unset: { [DO_FLAG]: 1 } },
         );
 
         this.logger.logDebug({ title: `${this.className}+${DONE_FLAG}`, message: `#=${matchedCount}  M=${modifiedCount}   (${gameId})` });

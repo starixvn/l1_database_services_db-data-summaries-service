@@ -35,7 +35,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
         private readonly mongo: MongoClient,
         private readonly ticketSummariesNamespace: ChangeStreamNameSpace,
         private readonly pipelineFactory: PipelineFactory<SC>,
-        logger: BaseLogger
+        logger: BaseLogger,
     ) {
         super(logger);
         this.selfBound();
@@ -236,7 +236,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
     private async setDoneFlag(collection: Collection) {
         const { matchedCount, modifiedCount } = await collection.updateMany(
             { [DO_FLAG]: true }, //
-            { $set: { [DONE_FLAG]: true }, $unset: { [DO_FLAG]: 1 } }
+            { $set: { [DONE_FLAG]: true }, $unset: { [DO_FLAG]: 1 } },
         );
 
         this.logger.logDebug({ title: `${this.className}+${DONE_FLAG}`, message: `#=${matchedCount}  M=${modifiedCount}   (${collection.namespace})` });

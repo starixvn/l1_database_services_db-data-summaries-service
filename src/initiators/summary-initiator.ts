@@ -8,7 +8,11 @@ import type { SchemaSummaryConfig, SummaryConfig } from "../types/summary-config
 export type SummaryInitiatorEvents = Record<SummaryConfig["_brand"], (config: SummaryConfig) => Promise<void>> & Record<"gameId", (gameId: number) => Promise<void>>;
 
 export class SummaryInitiator extends Dispatcher<SummaryInitiatorEvents, "SUMMARY_ROUND", Pick<SchedulerEvents, "SUMMARY_ROUND">, Scheduler> {
-    constructor(private readonly mongo: MongoClient, private readonly summaryConfigsNamespace: ChangeStreamNameSpace, logger: BaseLogger) {
+    constructor(
+        private readonly mongo: MongoClient,
+        private readonly summaryConfigsNamespace: ChangeStreamNameSpace,
+        logger: BaseLogger,
+    ) {
         super(logger);
         this.selfBound();
     }

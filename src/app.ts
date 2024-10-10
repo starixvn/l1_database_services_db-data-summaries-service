@@ -19,7 +19,7 @@ export class App {
         private readonly roundExtractor: RoundExtractor,
         private readonly timeSummarizers: TimeSummarizers,
 
-        private readonly logger: BaseLogger
+        private readonly logger: BaseLogger,
     ) {
         this.selfBound();
         this.handleExceptions();
