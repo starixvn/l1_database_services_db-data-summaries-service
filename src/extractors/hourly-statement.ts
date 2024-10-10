@@ -7,9 +7,7 @@ import { TimeExtractor } from "./time-extractor.js";
 const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): Document[] => [
     {
         $group: {
-            _id: {
-                _id: "$_ids.hourlyStatement",
-            },
+            _id: "$_ids.hourlyStatement",
         },
     },
     {
@@ -25,7 +23,14 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
         $group: {
             _id: "$_id",
             time: {
-                $first: { $dateFromParts: { year: { $year: "$data.roundTime" }, month: { $month: "$data.roundTime" }, day: { $dayOfMonth: "$data.roundTime" }, hour: { $hour: "$data.roundTime" } } },
+                $first: {
+                    $dateFromParts: {
+                        year: { $year: "$data.roundTime" },
+                        month: { $month: "$data.roundTime" },
+                        day: { $dayOfMonth: "$data.roundTime" },
+                        hour: { $hour: "$data.roundTime" },
+                    },
+                },
             },
             gameId: { $first: "$data.gameId" },
             operatorId: { $first: "$data.operatorId" },

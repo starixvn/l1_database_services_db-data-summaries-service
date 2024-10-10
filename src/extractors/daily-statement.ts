@@ -7,9 +7,7 @@ import { TimeExtractor } from "./time-extractor.js";
 const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): Document[] => [
     {
         $group: {
-            _id: {
-                _id: "$_ids.dailyStatement",
-            },
+            _id: "$_ids.dailyStatement",
         },
     },
     {
