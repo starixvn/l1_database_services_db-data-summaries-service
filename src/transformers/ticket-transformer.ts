@@ -1,5 +1,5 @@
-import type { BaseLogger } from "@ldb/base-logger";
-import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
+import type { BaseLogger } from "@ldb/logger";
+import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MongoClient } from "@ldb/mongo";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import type { BetSummaryConfig } from "../types/summary-config.js";
 import { BaseTransformer, LOOKUP_CURRENCY, LOOKUP_EXCHANGE, LOOKUP_ROUND, LOOKUP_USER } from "./base-transformer.js";
@@ -11,7 +11,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
     const { foreign, playerId, time, subRoundId } = aliases;
     const { tickets, stake, payout, refund, roundId } = calc;
 
-    const roundLookup: Document[] = [];
+    const roundLookup: CollectionAggregationPipeline = [];
     if (typeof roundId === "string" && roundId[0] === "$") {
         const foreignField = roundId.slice(1);
 
@@ -156,7 +156,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                 "VND.loss": { $round: [{ $min: ["$VND.winloss", 0] }, 4] },
             },
         },
-    ];
+    ] satisfies CollectionAggregationPipeline;
 };
 
 export class TicketTransformer extends BaseTransformer<BetSummaryConfig> {

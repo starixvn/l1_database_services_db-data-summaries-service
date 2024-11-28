@@ -1,18 +1,13 @@
 {
-    "extends": "@tsconfig/node20/tsconfig.json",
-    "compilerOptions": {
-        "sourceMap": true,
-        "declaration": true,
-        "declarationMap": true,
-        "sourceRoot": "/",
-        "mapRoot": "/",
-        "moduleResolution": "Node",
-        "module": "ES2022",
-        "target": "ES2022",
-        "rootDir": "src",
-        "outDir": "lib",
-        "alwaysStrict": true
-    },
-    "compileOnSave": true,
-    "include": ["src/**/*"]
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "@ldb/tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "sourceMap": true,
+    "declarationMap": true,
+    "sourceRoot": "../src",
+    "mapRoot": "../lib",
+    "rootDir": "src",
+    "outDir": "lib"
+  },
+  "include": ["src/**/*"]
 }

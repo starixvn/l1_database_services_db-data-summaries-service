@@ -1,17 +1,17 @@
-import type { BaseLogger } from "@ldb/base-logger";
-import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
+import type { BaseLogger } from "@ldb/logger";
+import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MongoClient } from "@ldb/mongo";
+import { Subscriber } from "@ldb/utils";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
 import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD, TIME_WARMING_PERIOD } from "../consts/summary-constants.js";
-import type { TimeInitiator, TimeInitiatorEvents } from "../initiators/time-initiator.js";
-import { Subscriber } from "../modules/subscriber.js";
+import type { TimeInitiatorEvents, TimeKeys } from "../initiators/time-initiator.js";
 
-export type TimePipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace) => Document[];
-export type TimeExtractorConfig<Event extends keyof TimeInitiatorEvents> = { type: Lowercase<Event> };
+export type TimePipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace) => CollectionAggregationPipeline;
+export type TimeExtractorConfig<Event extends TimeKeys> = { type: Lowercase<Event> };
 
 const getFlag = <S extends string>(type: S) => `__archive.${type}` as const;
 const getDoFlag = <S extends string>(type: S) => `__archive.do_${type}` as const;
 
-export class TimeExtractor<Event extends keyof TimeInitiatorEvents> extends Subscriber<Event, Pick<TimeInitiatorEvents, Event>, TimeInitiator> {
+export class TimeExtractor<Event extends TimeKeys> extends Subscriber<Pick<TimeInitiatorEvents, Event>> {
     private flag = false;
     private startTime = new Date();
 
@@ -36,7 +36,7 @@ export class TimeExtractor<Event extends keyof TimeInitiatorEvents> extends Subs
         this.execute = this.execute.bind(this);
     }
 
-    private async execute() {
+    protected async execute() {
         if (this.flag) {
             this.logger.logInfo({ title: this.className, message: `Summary is running since ${this.startTime.toISOString()}` });
             return;
@@ -101,13 +101,5 @@ export class TimeExtractor<Event extends keyof TimeInitiatorEvents> extends Subs
         });
 
         return modifiedCount + upsertedCount;
-    }
-
-    subscribe(publisher: TimeInitiator, event: Event) {
-        return super.subscribe(publisher, event, this.execute);
-    }
-
-    unsubscribe(publisher: TimeInitiator, event: Event) {
-        return super.unsubscribe(publisher, event, this.execute);
     }
 }

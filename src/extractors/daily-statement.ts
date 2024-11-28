@@ -1,10 +1,10 @@
-import type { BaseLogger } from "@ldb/base-logger";
-import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
+import type { BaseLogger } from "@ldb/logger";
+import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MongoClient } from "@ldb/mongo";
 import type { TimeInitiator } from "../initiators/time-initiator.js";
 import { version } from "../metadata.js";
 import { TimeExtractor } from "./time-extractor.js";
 
-const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): Document[] => [
+const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): CollectionAggregationPipeline => [
     {
         $group: {
             _id: "$_ids.dailyStatement",
@@ -104,9 +104,9 @@ export class DailyStatement extends TimeExtractor<"DAILY"> {
     }
 
     subscribe(emitter: TimeInitiator) {
-        return super.subscribe(emitter, "DAILY");
+        return super.subscribe(emitter, "DAILY", this.execute);
     }
     unsubscribe(emitter: TimeInitiator) {
-        return super.unsubscribe(emitter, "DAILY");
+        return super.unsubscribe(emitter, "DAILY", this.execute);
     }
 }

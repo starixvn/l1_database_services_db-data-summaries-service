@@ -1,10 +1,12 @@
-import type { BaseLogger } from "@ldb/base-logger";
-import { Dispatcher } from "../modules/dispatcher.js";
-import type { Scheduler, SchedulerEvents } from "../types/scheduler.js";
+import type { BaseLogger } from "@ldb/logger";
+import type { Scheduler } from "@ldb/scheduler";
+import { Dispatcher } from "@ldb/utils";
+import type { SchedulerEvents, SchedulerKeys } from "../types/scheduler.js";
 
-export type TimeInitiatorEvents = Record<"HOURLY" | "DAILY", () => Promise<void>>;
+export type TimeKeys = "HOURLY" | "DAILY";
+export type TimeInitiatorEvents = Record<TimeKeys, () => Promise<void>>;
 
-export class TimeInitiator extends Dispatcher<TimeInitiatorEvents, "SUMMARY_TIME", Pick<SchedulerEvents, "SUMMARY_TIME">, Scheduler> {
+export class TimeInitiator extends Dispatcher<TimeInitiatorEvents, Pick<SchedulerEvents, "SUMMARY_TIME">> {
     constructor(logger: BaseLogger) {
         super(logger);
         this.selfBound();
@@ -23,11 +25,11 @@ export class TimeInitiator extends Dispatcher<TimeInitiatorEvents, "SUMMARY_TIME
         this.emit("DAILY");
     }
 
-    subscribe(publisher: Scheduler) {
+    subscribe(publisher: Scheduler<SchedulerKeys>) {
         return super.subscribe(publisher, "SUMMARY_TIME", this.initSummary);
     }
 
-    unsubscribe(publisher: Scheduler) {
+    unsubscribe(publisher: Scheduler<SchedulerKeys>) {
         return super.unsubscribe(publisher, "SUMMARY_TIME", this.initSummary);
     }
 }

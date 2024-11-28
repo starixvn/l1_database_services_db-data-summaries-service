@@ -1,16 +1,15 @@
-import type { BaseLogger } from "@ldb/base-logger";
-import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
+import type { BaseLogger } from "@ldb/logger";
+import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MatchStage, MongoClient } from "@ldb/mongo";
+import { Subscriber } from "@ldb/utils";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
 import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD, DO_FLAG, DONE_FLAG, TIME_WARMING_PERIOD } from "../consts/summary-constants.js";
-import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import { version } from "../metadata.js";
-import { Subscriber } from "../modules/subscriber.js";
 import type { TransformerEvents } from "../transformers/base-transformer.js";
 import type { RoundTransformer } from "../transformers/round-transformer.js";
 import type { TicketTransformer } from "../transformers/ticket-transformer.js";
 import type { TicketSummary } from "../types/summary-schema.js";
 
-export class RoundExtractor extends Subscriber<keyof TransformerEvents, TransformerEvents, RoundTransformer | TicketTransformer | SummaryInitiator> {
+export class RoundExtractor extends Subscriber<TransformerEvents> {
     private readonly flags: Map<string, Date> = new Map();
 
     constructor(
@@ -52,7 +51,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
 
     private async extract(gameId: number) {
         const pipeline = this.getPipeline();
-        const matchStage = { $match: { [DO_FLAG]: true, gameId } };
+        const matchStage = { $match: { [DO_FLAG]: true, gameId } } satisfies MatchStage;
 
         let lastCount = 0;
         do {
@@ -218,7 +217,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     whenNotMatched: "insert",
                 },
             },
-        ] as const satisfies Document[];
+        ] as const satisfies CollectionAggregationPipeline;
     }
 
     private async setDoFlag(gameId: number) {

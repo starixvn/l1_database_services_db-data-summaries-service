@@ -1,11 +1,11 @@
-import type { BaseLogger } from "@ldb/base-logger";
-import { Document, MongoClient, type ChangeStreamNameSpace, type Collection } from "@ldb/mongo";
+import type { BaseLogger } from "@ldb/logger";
+import { Document, MongoClient, type ChangeStreamNameSpace, type Collection, type CollectionAggregationPipeline, type MergeStage } from "@ldb/mongo";
+import { Dispatcher, type StringKeyOf } from "@ldb/utils";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
 import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD, DO_FLAG, DONE_FLAG, TIME_WARMING_PERIOD } from "../consts/summary-constants.js";
 import { getSourceNamespace } from "../helpers/summary-config.js";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import { version } from "../metadata.js";
-import { Dispatcher } from "../modules/dispatcher.js";
 import { SummaryConfig } from "../types/summary-config.js";
 
 export const LOOKUP_ROUND = "__round" as const;
@@ -26,9 +26,9 @@ export type TransformerEvents = {
 
 type Events<SC extends SummaryConfig> = SC["_brand"];
 type EventDescriptions<SC extends SummaryConfig> = Record<Events<SC>, (config: SC) => Promise<void>>;
-export type PipelineFactory<SC extends SummaryConfig> = (...args: [SC]) => Document[];
+export type PipelineFactory<SC extends SummaryConfig> = (...args: [SC]) => CollectionAggregationPipeline;
 
-export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<TransformerEvents, Events<SC>, EventDescriptions<SC>, SummaryInitiator> {
+export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<TransformerEvents, EventDescriptions<SC>> {
     private readonly flags: Map<string, Date> = new Map();
 
     constructor(
@@ -198,7 +198,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
                     },
                 },
             },
-        ];
+        ] satisfies CollectionAggregationPipeline;
         const mergeStage = {
             $merge: {
                 into: this.ticketSummariesNamespace,
@@ -206,11 +206,9 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
                 whenMatched: "replace",
                 whenNotMatched: "insert",
             },
-        } as const satisfies Document;
+        } as const satisfies MergeStage;
 
-        pipeline.push(filterStage, ...metaStages, mergeStage);
-
-        return pipeline;
+        return [...pipeline, filterStage, ...metaStages, mergeStage];
     }
 
     private async setDoFlag(collection: Collection, summaryConfig: SC) {
@@ -249,11 +247,11 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
         this.emit<"TRANSFORMED">("TRANSFORMED", gameId);
     }
 
-    subscribe<Event extends Events<SC>>(publisher: SummaryInitiator, event: Event) {
+    subscribe<Event extends StringKeyOf<EventDescriptions<SC>>>(publisher: SummaryInitiator, event: Event) {
         return super.subscribe(publisher, event, this.execute);
     }
 
-    unsubscribe<Event extends Events<SC>>(publisher: SummaryInitiator, event: Event) {
+    unsubscribe<Event extends StringKeyOf<EventDescriptions<SC>>>(publisher: SummaryInitiator, event: Event) {
         return super.unsubscribe(publisher, event, this.execute);
     }
 }

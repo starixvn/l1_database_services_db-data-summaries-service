@@ -1,10 +1,10 @@
-import type { BaseLogger } from "@ldb/base-logger";
-import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
+import type { BaseLogger } from "@ldb/logger";
+import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MongoClient } from "@ldb/mongo";
 import type { TimeInitiator } from "../initiators/time-initiator.js";
 import { version } from "../metadata.js";
 import { TimeExtractor } from "./time-extractor.js";
 
-const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): Document[] => [
+const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): CollectionAggregationPipeline => [
     {
         $group: {
             _id: "$_ids.hourlySummary",
@@ -105,9 +105,9 @@ export class HourlySummarizer extends TimeExtractor<"HOURLY"> {
     }
 
     subscribe(emitter: TimeInitiator) {
-        return super.subscribe(emitter, "HOURLY");
+        return super.subscribe(emitter, "HOURLY", this.execute);
     }
     unsubscribe(emitter: TimeInitiator) {
-        return super.unsubscribe(emitter, "HOURLY");
+        return super.unsubscribe(emitter, "HOURLY", this.execute);
     }
 }

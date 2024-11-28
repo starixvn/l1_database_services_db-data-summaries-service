@@ -1,13 +1,14 @@
-import type { BaseLogger } from "@ldb/base-logger";
+import type { BaseLogger } from "@ldb/logger";
 import type { ChangeStreamNameSpace, MongoClient } from "@ldb/mongo";
+import type { Scheduler } from "@ldb/scheduler";
+import { Dispatcher } from "@ldb/utils";
 import { parseSummaryConfig } from "../helpers/summary-config.js";
-import { Dispatcher } from "../modules/dispatcher.js";
-import type { Scheduler, SchedulerEvents } from "../types/scheduler.js";
+import type { SchedulerEvents, SchedulerKeys } from "../types/scheduler.js";
 import type { SchemaSummaryConfig, SummaryConfig } from "../types/summary-config.js";
 
 export type SummaryInitiatorEvents = Record<SummaryConfig["_brand"], (config: SummaryConfig) => Promise<void>> & Record<"gameId", (gameId: number) => Promise<void>>;
 
-export class SummaryInitiator extends Dispatcher<SummaryInitiatorEvents, "SUMMARY_ROUND", Pick<SchedulerEvents, "SUMMARY_ROUND">, Scheduler> {
+export class SummaryInitiator extends Dispatcher<SummaryInitiatorEvents, Pick<SchedulerEvents, "SUMMARY_ROUND">> {
     constructor(
         private readonly mongo: MongoClient,
         private readonly summaryConfigsNamespace: ChangeStreamNameSpace,
@@ -57,11 +58,11 @@ export class SummaryInitiator extends Dispatcher<SummaryInitiatorEvents, "SUMMAR
         return this.summaryConfigsCollection.find({}, { projection: { _id: 0 } });
     }
 
-    subscribe(publisher: Scheduler) {
+    subscribe(publisher: Scheduler<SchedulerKeys>) {
         return super.subscribe(publisher, "SUMMARY_ROUND", this.initSummary);
     }
 
-    unsubscribe(publisher: Scheduler) {
+    unsubscribe(publisher: Scheduler<SchedulerKeys>) {
         return super.unsubscribe(publisher, "SUMMARY_ROUND", this.initSummary);
     }
 }
