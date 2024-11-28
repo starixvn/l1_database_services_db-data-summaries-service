@@ -1,23 +1,22 @@
-import type { BaseLogger } from "@ldb/base-logger";
-import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
+import type { BaseLogger } from "@ldb/logger";
+import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MatchStage, MongoClient } from "@ldb/mongo";
+import { Subscriber } from "@ldb/utils";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
 import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD, DO_FLAG, DONE_FLAG, TIME_WARMING_PERIOD } from "../consts/summary-constants.js";
-import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import { version } from "../metadata.js";
-import { Subscriber } from "../modules/subscriber.js";
 import type { TransformerEvents } from "../transformers/base-transformer.js";
 import type { RoundTransformer } from "../transformers/round-transformer.js";
 import type { TicketTransformer } from "../transformers/ticket-transformer.js";
 import type { TicketSummary } from "../types/summary-schema.js";
 
-export class RoundExtractor extends Subscriber<keyof TransformerEvents, TransformerEvents, RoundTransformer | TicketTransformer | SummaryInitiator> {
+export class RoundExtractor extends Subscriber<TransformerEvents> {
     private readonly flags: Map<string, Date> = new Map();
 
     constructor(
         private readonly mongo: MongoClient,
         private readonly ticketSummariesNamespace: ChangeStreamNameSpace,
         private readonly roundSummariesNamespace: ChangeStreamNameSpace,
-        logger: BaseLogger
+        logger: BaseLogger,
     ) {
         super(logger);
         this.selfBound();
@@ -52,7 +51,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
 
     private async extract(gameId: number) {
         const pipeline = this.getPipeline();
-        const matchStage = { $match: { [DO_FLAG]: true, gameId } };
+        const matchStage = { $match: { [DO_FLAG]: true, gameId } } satisfies MatchStage;
 
         let lastCount = 0;
         do {
@@ -69,35 +68,14 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
         return [
             {
                 $group: {
-                    _id: {
-                        gameId: "$gameId",
-                        roundId: "$roundId",
-                        currency: "$currency",
-                        operatorId: "$operatorId",
-                        siteId: "$siteId",
-                    },
+                    _id: "$_ids.roundSummary",
                 },
             },
             {
                 $lookup: {
                     from: this.ticketSummariesNamespace.coll,
-                    localField: "_id.gameId",
-                    foreignField: "gameId",
-                    let: { roundId: "$_id.roundId", operatorId: "$_id.operatorId", siteId: "$_id.siteId", currency: "$_id.currency" },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $and: [
-                                        { $eq: ["$roundId", "$$roundId"] },
-                                        { $eq: ["$operatorId", "$$operatorId"] },
-                                        { $eq: ["$siteId", "$$siteId"] },
-                                        { $eq: ["$currency", "$$currency"] },
-                                    ],
-                                },
-                            },
-                        },
-                    ],
+                    localField: "_id",
+                    foreignField: "_ids.roundSummary",
                     as: "silo",
                 },
             },
@@ -107,6 +85,11 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     _id: "$_id",
                     _roundId: { $max: "$silo._roundId" },
                     time: { $min: { $ifNull: ["$silo.roundTime", "$silo.time"] } },
+                    currency: { $first: { $ifNull: ["$silo.currency", { $literal: "" }] } },
+                    gameId: { $first: "$silo.gameId" },
+                    operatorId: { $first: { $ifNull: ["$silo.operatorId", { $literal: "" }] } },
+                    siteId: { $first: { $ifNull: ["$silo.siteId", { $literal: "" }] } },
+                    roundId: { $first: "$silo.roundId" },
                     tickets: { $sum: "$silo.tickets" },
                     stake: { $sum: "$silo.stake" },
                     payout: { $sum: "$silo.payout" },
@@ -131,15 +114,15 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             },
             {
                 $project: {
-                    _id: 0,
-                    _roundId: "$_roundId",
-                    time: "$time",
-                    currency: { $ifNull: ["$_id.currency", { $literal: "" }] },
-                    gameId: "$_id.gameId",
-                    operatorId: { $ifNull: ["$_id.operatorId", { $literal: "" }] },
-                    siteId: { $ifNull: ["$_id.siteId", { $literal: "" }] },
-                    roundId: "$_id.roundId",
-                    tickets: "$tickets",
+                    _id: 1,
+                    _roundId: 1,
+                    time: 1,
+                    currency: 1,
+                    gameId: 1,
+                    operatorId: 1,
+                    siteId: 1,
+                    roundId: 1,
+                    tickets: 1,
                     stake: { $round: ["$stake", 4] },
                     payout: { $round: ["$payout", 4] },
                     winloss: { $round: ["$winloss", 4] },
@@ -147,7 +130,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     loss: { $round: ["$loss", 4] },
                     refund: { $round: ["$refund", 4] },
                     players: { $size: "$playerIds" },
-                    playerIds: "$playerIds",
+                    playerIds: { $sortArray: { input: "$playerIds", sortBy: 1 } },
                     "USD.stake": { $round: ["$usdStake", 4] },
                     "USD.payout": { $round: ["$usdPayout", 4] },
                     "USD.winloss": { $round: ["$usdWinloss", 4] },
@@ -161,6 +144,59 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
                     "VND.loss": { $round: ["$vndLoss", 4] },
                     "VND.refund": { $round: ["$vndRefund", 4] },
                     __v: version,
+                    "_ids.hourlySummary": {
+                        $toHashedIndexKey: {
+                            gameId: "$gameId",
+                            currency: "$currency",
+                            operatorId: "$operatorId",
+                            siteId: "$siteId",
+                            time: {
+                                $dateFromParts: {
+                                    year: { $year: "$time" },
+                                    month: { $month: "$time" },
+                                    day: { $dayOfMonth: "$time" },
+                                    hour: { $hour: "$time" },
+                                },
+                            },
+                        },
+                    },
+                    "_ids.dailySummary": {
+                        $toHashedIndexKey: {
+                            gameId: "$gameId",
+                            currency: "$currency",
+                            operatorId: "$operatorId",
+                            siteId: "$siteId",
+                            time: {
+                                $dateFromParts: {
+                                    year: { $year: "$time" },
+                                    month: { $month: "$time" },
+                                    day: { $dayOfMonth: "$time" },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            {
+                $set: {
+                    "_ids.hourlySummary": {
+                        $toObjectId: {
+                            $concat: [
+                                { $cond: [{ $lt: ["$_ids.hourlySummary", 0] }, "1", "0"] },
+                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.hourlySummary" } } }] }] },
+                                { $toString: { $abs: "$_ids.hourlySummary" } },
+                            ],
+                        },
+                    },
+                    "_ids.dailySummary": {
+                        $toObjectId: {
+                            $concat: [
+                                { $cond: [{ $lt: ["$_ids.dailySummary", 0] }, "1", "0"] },
+                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.dailySummary" } } }] }] },
+                                { $toString: { $abs: "$_ids.dailySummary" } },
+                            ],
+                        },
+                    },
                 },
             },
             {
@@ -176,12 +212,12 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
             {
                 $merge: {
                     into: this.roundSummariesNamespace,
-                    on: ["gameId", "currency", "operatorId", "siteId", "roundId"],
+                    on: "_id",
                     whenMatched: "replace",
                     whenNotMatched: "insert",
                 },
             },
-        ] as const satisfies Document[];
+        ] as const satisfies CollectionAggregationPipeline;
     }
 
     private async setDoFlag(gameId: number) {
@@ -199,7 +235,7 @@ export class RoundExtractor extends Subscriber<keyof TransformerEvents, Transfor
     private async setDoneFlag(gameId: number) {
         const { matchedCount, modifiedCount } = await this.ticketSummariesCollection.updateMany(
             { [DO_FLAG]: true, gameId }, //
-            { $set: { [DONE_FLAG]: true }, $unset: { [DO_FLAG]: 1 } }
+            { $set: { [DONE_FLAG]: true }, $unset: { [DO_FLAG]: 1 } },
         );
 
         this.logger.logDebug({ title: `${this.className}+${DONE_FLAG}`, message: `#=${matchedCount}  M=${modifiedCount}   (${gameId})` });

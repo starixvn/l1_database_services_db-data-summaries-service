@@ -1,43 +1,20 @@
-import type { BaseLogger } from "@ldb/base-logger";
-import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
+import type { BaseLogger } from "@ldb/logger";
+import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MongoClient } from "@ldb/mongo";
 import type { TimeInitiator } from "../initiators/time-initiator.js";
 import { version } from "../metadata.js";
 import { TimeExtractor } from "./time-extractor.js";
 
-const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): Document[] => [
+const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNamespace: ChangeStreamNameSpace): CollectionAggregationPipeline => [
     {
         $group: {
-            _id: {
-                time: { $dateFromParts: { year: { $year: "$time" }, month: { $month: "$time" }, day: { $dayOfMonth: "$time" } } },
-                timeTo: { $dateFromParts: { year: { $year: "$time" }, month: { $month: "$time" }, day: { $add: [{ $dayOfMonth: "$time" }, 1] } } },
-                currency: "$currency",
-                gameId: "$gameId",
-                operatorId: "$operatorId",
-                siteId: "$siteId",
-            },
+            _id: "$_ids.dailySummary",
         },
     },
     {
         $lookup: {
             from: sourceNamespace.coll,
-            localField: "_id.gameId",
-            foreignField: "gameId",
-            let: { time: "$_id.time", timeTo: "$_id.timeTo", currency: "$_id.currency", operatorId: "$_id.operatorId", siteId: "$_id.siteId" },
-            pipeline: [
-                {
-                    $match: {
-                        $expr: {
-                            $and: [
-                                { $gte: ["$time", "$$time"] },
-                                { $lt: ["$time", "$$timeTo"] },
-                                { $eq: ["$currency", "$$currency"] },
-                                { $eq: ["$operatorId", "$$operatorId"] },
-                                { $eq: ["$siteId", "$$siteId"] },
-                            ],
-                        },
-                    },
-                },
-            ],
+            localField: "_id",
+            foreignField: "_ids.dailySummary",
             as: "data",
         },
     },
@@ -45,6 +22,11 @@ const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetName
     {
         $group: {
             _id: "$_id",
+            time: { $first: { $dateFromParts: { year: { $year: "$data.time" }, month: { $month: "$data.time" }, day: { $dayOfMonth: "$data.time" } } } },
+            currency: { $first: "$data.currency" },
+            gameId: { $first: "$data.gameId" },
+            operatorId: { $first: "$data.operatorId" },
+            siteId: { $first: "$data.siteId" },
             tickets: { $sum: "$data.tickets" },
             stake: { $sum: "$data.stake" },
             payout: { $sum: "$data.payout" },
@@ -70,19 +52,18 @@ const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetName
     {
         $set: {
             playerIds: { $reduce: { input: "$playerIds", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } },
-            siteId: { $ifNull: ["$_id.siteId", { $literal: "" }] },
         },
     },
     {
         $project: {
-            _id: 0,
-            time: "$_id.time",
-            currency: "$_id.currency",
-            gameId: "$_id.gameId",
-            operatorId: "$_id.operatorId",
-            partnerId: "$_id.operatorId",
-            siteId: "$siteId",
-            tickets: "$tickets",
+            _id: 1,
+            time: 1,
+            currency: 1,
+            gameId: 1,
+            operatorId: 1,
+            partnerId: 1,
+            siteId: 1,
+            tickets: 1,
             stake: { $round: ["$stake", 4] },
             payout: { $round: ["$payout", 4] },
             winloss: { $round: ["$winloss", 4] },
@@ -90,7 +71,7 @@ const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetName
             loss: { $round: ["$loss", 4] },
             refund: { $round: ["$refund", 4] },
             players: { $size: "$playerIds" },
-            playerIds: "$playerIds",
+            playerIds: { $sortArray: { input: "$playerIds", sortBy: 1 } },
             "USD.stake": { $round: ["$usdStake", 4] },
             "USD.payout": { $round: ["$usdPayout", 4] },
             "USD.winloss": { $round: ["$usdWinloss", 4] },
@@ -109,7 +90,7 @@ const dailyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetName
     {
         $merge: {
             into: targetNamespace,
-            on: ["gameId", "currency", "operatorId", "siteId", "time"],
+            on: "_id",
             whenMatched: "replace",
             whenNotMatched: "insert",
         },
@@ -122,9 +103,9 @@ export class DailySummarizer extends TimeExtractor<"DAILY"> {
     }
 
     subscribe(emitter: TimeInitiator) {
-        return super.subscribe(emitter, "DAILY");
+        return super.subscribe(emitter, "DAILY", this.execute);
     }
     unsubscribe(emitter: TimeInitiator) {
-        return super.unsubscribe(emitter, "DAILY");
+        return super.unsubscribe(emitter, "DAILY", this.execute);
     }
 }

@@ -1,5 +1,3 @@
 {
-    "extends": [
-        "sc-semantic-release"
-    ]
+  "extends": ["sc-semantic-release"]
 }

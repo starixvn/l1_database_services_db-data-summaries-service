@@ -8,6 +8,6 @@ export class TimeSummarizers {
         public readonly dailySummarizer: DailySummarizer,
         public readonly hourlySummarizer: HourlySummarizer,
         public readonly dailyStatement: DailyStatement,
-        public readonly hourlyStatement: HourlyStatement
+        public readonly hourlyStatement: HourlyStatement,
     ) {}
 }

@@ -1,5 +1,5 @@
-import type { BaseLogger } from "@ldb/base-logger";
-import type { ChangeStreamNameSpace, Document, MongoClient } from "@ldb/mongo";
+import type { BaseLogger } from "@ldb/logger";
+import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MongoClient } from "@ldb/mongo";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import type { RoundSummaryConfig } from "../types/summary-config.js";
 import { BaseTransformer, LOOKUP_CURRENCY, LOOKUP_EXCHANGE, LOOKUP_USER } from "./base-transformer.js";
@@ -10,7 +10,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
     const { playerId, time, subRoundId } = aliases;
     const { roundId, tickets, stake, payout, refund } = calc;
 
-    const pipeline: Document[] = [
+    const pipeline: CollectionAggregationPipeline = [
         {
             $lookup: {
                 from: "user_silos",
@@ -80,7 +80,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 code: 1,
                 gameId: { $literal: gameId },
                 operatorId: 1,
-                siteId: { $cond: [{ $eq: ["$operatorId", { $literal: "SabaPlay" }] }, "$siteId", "$$REMOVE"] },
+                siteId: { $cond: [{ $eq: ["$operatorId", { $literal: "SabaPlay" }] }, "$siteId", ""] },
                 roundId,
                 subRoundId: `$${subRoundId}`,
                 tickets,

@@ -1,7 +1,14 @@
 variables:
-    NODEJS_IMAGE: hub.lumigame.com/docker-hub/library/node:lts-alpine
+  NODEJS_IMAGE: hub.lumigame.com/ldb/node-base:22
 
 include:
-    - project: ci/core-cicd
-      ref: main
-      file: luminet.gitlab-ci.yml
+  - project: ci/core-cicd
+    ref: main
+    file: luminet.gitlab-ci.yml
+
+unit_test_js:
+  stage: test
+  before_script:
+    - pnpm install
+  script:
+    - pnpm test-coverage

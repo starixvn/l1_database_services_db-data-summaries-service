@@ -1,38 +1,13 @@
-import { describe, expect, it, jest } from "@jest/globals";
 import type { ChangeStreamNameSpace } from "@ldb/mongo";
-import {
-    getSourceNamespace,
-    getTicketRoundIdExpr,
-    isBetSummaryConfig,
-    isRoundSummaryConfig,
-    parseBetSummaryConfig,
-    parseRoundSummaryConfig,
-    parseSummaryConfig,
-    throwSummaryConfigError,
-} from "../../../src/helpers/summary-config";
-import type {
-    BetSummaryConfig,
-    RoundSummaryConfig,
-    SchemaBetSummaryConfig,
-    SchemaRoundSummaryConfig,
-    SchemaSummaryConfig,
-    SummaryConfig,
-} from "../../../src/types/summary-config.ts";
-
-afterAll(() => {
-    jest.clearAllMocks();
-});
-
-({
-    parseSummaryConfig,
-    parseBetSummaryConfig,
-    parseRoundSummaryConfig,
-});
+import { describe, expect, it } from "vitest";
+import type { BetSummaryConfig, RoundSummaryConfig, SchemaBetSummaryConfig, SchemaRoundSummaryConfig, SchemaSummaryConfig, SummaryConfig } from "../types/summary-config.js";
+import { getSourceNamespace, getTicketRoundIdExpr, isBetSummaryConfig, isRoundSummaryConfig, parseSummaryConfig, throwSummaryConfigError } from "./summary-config.js";
 
 describe("Summary config helpers", () => {
     describe("[function throwSummaryConfigError]", () => {
         it("Throw custom error", () => {
             const summaryConfig = { mock: "SummaryConfig" } as unknown as SummaryConfig;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let receivedError: any = {};
 
             try {

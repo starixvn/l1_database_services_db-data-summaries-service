@@ -1,11 +1,11 @@
-import type { BaseLogger } from "@ldb/base-logger";
-import { Document, MongoClient, type ChangeStreamNameSpace, type Collection } from "@ldb/mongo";
+import type { BaseLogger } from "@ldb/logger";
+import { Document, MongoClient, type ChangeStreamNameSpace, type Collection, type CollectionAggregationPipeline, type MergeStage } from "@ldb/mongo";
+import { Dispatcher, type StringKeyOf } from "@ldb/utils";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
 import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD, DO_FLAG, DONE_FLAG, TIME_WARMING_PERIOD } from "../consts/summary-constants.js";
 import { getSourceNamespace } from "../helpers/summary-config.js";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import { version } from "../metadata.js";
-import { Dispatcher } from "../modules/dispatcher.js";
 import { SummaryConfig } from "../types/summary-config.js";
 
 export const LOOKUP_ROUND = "__round" as const;
@@ -26,16 +26,16 @@ export type TransformerEvents = {
 
 type Events<SC extends SummaryConfig> = SC["_brand"];
 type EventDescriptions<SC extends SummaryConfig> = Record<Events<SC>, (config: SC) => Promise<void>>;
-export type PipelineFactory<SC extends SummaryConfig> = (...args: [SC]) => Document[];
+export type PipelineFactory<SC extends SummaryConfig> = (...args: [SC]) => CollectionAggregationPipeline;
 
-export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<TransformerEvents, Events<SC>, EventDescriptions<SC>, SummaryInitiator> {
+export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<TransformerEvents, EventDescriptions<SC>> {
     private readonly flags: Map<string, Date> = new Map();
 
     constructor(
         private readonly mongo: MongoClient,
         private readonly ticketSummariesNamespace: ChangeStreamNameSpace,
         private readonly pipelineFactory: PipelineFactory<SC>,
-        logger: BaseLogger
+        logger: BaseLogger,
     ) {
         super(logger);
         this.selfBound();
@@ -121,19 +121,94 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
                 playerId: { $ne: null },
             },
         } as const satisfies Document;
-        const versionStage = { $set: { __v: version } };
+        const metaStages = [
+            {
+                $set: {
+                    __v: version,
+                    "_ids.roundSummary": {
+                        $toHashedIndexKey: {
+                            gameId: "$gameId",
+                            currency: "$currency",
+                            operatorId: "$operatorId",
+                            siteId: "$siteId",
+                            roundId: "$roundId",
+                        },
+                    },
+                    "_ids.hourlyStatement": {
+                        $toHashedIndexKey: {
+                            gameId: "$gameId",
+                            operatorId: "$operatorId",
+                            playerId: "$playerId",
+                            siteId: "$siteId",
+                            time: {
+                                $dateFromParts: {
+                                    year: { $year: "$roundTime" },
+                                    month: { $month: "$roundTime" },
+                                    day: { $dayOfMonth: "$roundTime" },
+                                    hour: { $hour: "$roundTime" },
+                                },
+                            },
+                        },
+                    },
+                    "_ids.dailyStatement": {
+                        $toHashedIndexKey: {
+                            gameId: "$gameId",
+                            operatorId: "$operatorId",
+                            playerId: "$playerId",
+                            siteId: "$siteId",
+                            time: {
+                                $dateFromParts: {
+                                    year: { $year: "$roundTime" },
+                                    month: { $month: "$roundTime" },
+                                    day: { $dayOfMonth: "$roundTime" },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            {
+                $set: {
+                    "_ids.roundSummary": {
+                        $toObjectId: {
+                            $concat: [
+                                { $cond: [{ $lt: ["$_ids.roundSummary", 0] }, "1", "0"] },
+                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.roundSummary" } } }] }] },
+                                { $toString: { $abs: "$_ids.roundSummary" } },
+                            ],
+                        },
+                    },
+                    "_ids.hourlyStatement": {
+                        $toObjectId: {
+                            $concat: [
+                                { $cond: [{ $lt: ["$_ids.hourlyStatement", 0] }, "1", "0"] },
+                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.hourlyStatement" } } }] }] },
+                                { $toString: { $abs: "$_ids.hourlyStatement" } },
+                            ],
+                        },
+                    },
+                    "_ids.dailyStatement": {
+                        $toObjectId: {
+                            $concat: [
+                                { $cond: [{ $lt: ["$_ids.dailyStatement", 0] }, "1", "0"] },
+                                { $substrCP: ["000000000000000000000000", 0, { $subtract: [23, { $strLenCP: { $toString: { $abs: "$_ids.dailyStatement" } } }] }] },
+                                { $toString: { $abs: "$_ids.dailyStatement" } },
+                            ],
+                        },
+                    },
+                },
+            },
+        ] satisfies CollectionAggregationPipeline;
         const mergeStage = {
             $merge: {
                 into: this.ticketSummariesNamespace,
-                on: ["gameId", "roundId", "subRoundId", "operatorId", "playerId"],
+                on: "_id",
                 whenMatched: "replace",
                 whenNotMatched: "insert",
             },
-        } as const satisfies Document;
+        } as const satisfies MergeStage;
 
-        pipeline.push(filterStage, versionStage, mergeStage);
-
-        return pipeline;
+        return [...pipeline, filterStage, ...metaStages, mergeStage];
     }
 
     private async setDoFlag(collection: Collection, summaryConfig: SC) {
@@ -159,7 +234,7 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
     private async setDoneFlag(collection: Collection) {
         const { matchedCount, modifiedCount } = await collection.updateMany(
             { [DO_FLAG]: true }, //
-            { $set: { [DONE_FLAG]: true }, $unset: { [DO_FLAG]: 1 } }
+            { $set: { [DONE_FLAG]: true }, $unset: { [DO_FLAG]: 1 } },
         );
 
         this.logger.logDebug({ title: `${this.className}+${DONE_FLAG}`, message: `#=${matchedCount}  M=${modifiedCount}   (${collection.namespace})` });
@@ -172,11 +247,11 @@ export class BaseTransformer<SC extends SummaryConfig> extends Dispatcher<Transf
         this.emit<"TRANSFORMED">("TRANSFORMED", gameId);
     }
 
-    subscribe<Event extends Events<SC>>(publisher: SummaryInitiator, event: Event) {
+    subscribe<Event extends StringKeyOf<EventDescriptions<SC>>>(publisher: SummaryInitiator, event: Event) {
         return super.subscribe(publisher, event, this.execute);
     }
 
-    unsubscribe<Event extends Events<SC>>(publisher: SummaryInitiator, event: Event) {
+    unsubscribe<Event extends StringKeyOf<EventDescriptions<SC>>>(publisher: SummaryInitiator, event: Event) {
         return super.unsubscribe(publisher, event, this.execute);
     }
 }

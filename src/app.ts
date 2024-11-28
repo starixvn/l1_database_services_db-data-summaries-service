@@ -1,17 +1,15 @@
-import type { BaseLogger } from "@ldb/base-logger";
+import { BaseApp } from "@ldb/base-app";
+import type { BaseLogger } from "@ldb/logger";
 import type { Scheduler } from "@ldb/scheduler";
+import type { Metadata } from "@ldb/utils";
 import type { RoundExtractor, TimeSummarizers } from "./extractors/index.js";
 import type { SummaryInitiator, TimeInitiator } from "./initiators/index.js";
-import { name, version } from "./metadata.js";
 import type { RoundTransformer, TicketTransformer } from "./transformers/index.js";
+import type { SchedulerKeys } from "./types/scheduler.js";
 
-let exiting = false;
-
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export class App {
+export class App extends BaseApp {
     constructor(
-        private readonly scheduler: Scheduler,
+        private readonly scheduler: Scheduler<SchedulerKeys>,
         private readonly summaryInitiator: SummaryInitiator,
         private readonly timeInitiator: TimeInitiator,
         private readonly roundTransformer: RoundTransformer,
@@ -19,48 +17,10 @@ export class App {
         private readonly roundExtractor: RoundExtractor,
         private readonly timeSummarizers: TimeSummarizers,
 
-        private readonly logger: BaseLogger
+        metadata: Metadata,
+        logger: BaseLogger,
     ) {
-        this.selfBound();
-        this.handleExceptions();
-    }
-
-    get className() {
-        return this.constructor.name;
-    }
-
-    private selfBound() {
-        this.handleUncaughtException = this.handleUncaughtException.bind(this);
-        this.handleUnhandledRejection = this.handleUnhandledRejection.bind(this);
-    }
-
-    private handleExceptions() {
-        process.addListener("uncaughtException", this.handleUncaughtException);
-        process.addListener("unhandledRejection", this.handleUnhandledRejection);
-    }
-
-    private async handleUncaughtException(error: Error, origin: NodeJS.UncaughtExceptionOrigin) {
-        while (exiting) {
-            await wait(1_000);
-        }
-
-        exiting = true;
-        this.logger.logFatal({ title: name, message: error }, { tags: { event: "uncaughtException" }, extra: { error, origin } });
-
-        await wait(5_000);
-        process.exit(10);
-    }
-
-    private async handleUnhandledRejection(reason: unknown, promise: Promise<unknown>) {
-        while (exiting) {
-            await wait(5_000);
-        }
-
-        exiting = true;
-        this.logger.logFatal({ title: name, message: reason }, { tags: { event: "unhandledRejection" }, extra: { reason, promise } });
-
-        await wait(5_000);
-        process.exit(20);
+        super(metadata, logger);
     }
 
     initiate() {
@@ -79,6 +39,25 @@ export class App {
 
         this.timeInitiator.subscribe(this.scheduler);
 
-        this.logger.logWarning({ title: `${name}@${version}`, message: "App has been started." });
+        super.initiate();
+    }
+
+    terminate() {
+        this.timeInitiator.unsubscribe(this.scheduler);
+
+        this.timeSummarizers.dailySummarizer.unsubscribe(this.timeInitiator);
+        this.timeSummarizers.hourlySummarizer.unsubscribe(this.timeInitiator);
+        this.timeSummarizers.dailyStatement.unsubscribe(this.timeInitiator);
+        this.timeSummarizers.hourlyStatement.unsubscribe(this.timeInitiator);
+
+        this.summaryInitiator.unsubscribe(this.scheduler);
+
+        this.ticketTransformer.unsubscribe(this.summaryInitiator);
+        this.roundTransformer.unsubscribe(this.summaryInitiator);
+
+        this.roundExtractor.unsubscribe(this.ticketTransformer);
+        this.roundExtractor.unsubscribe(this.roundTransformer);
+
+        super.terminate();
     }
 }
