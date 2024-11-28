@@ -37,7 +37,7 @@ export const database = {
     targetUrl: `mongodb://${dbCred}@${dbSrv}/admin?authSource=admin&appName=${encodeURIComponent(name)}&replicaSet=${dbRepl}`,
 };
 
-export const eventConfigs = {
-    SUMMARY_ROUND: 60_000,
+export const schedulerConfig = {
+    SUMMARY_ROUND: [60_000, 0],
     SUMMARY_TIME: [60_000, 30_000],
 };
