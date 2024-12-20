@@ -35,4 +35,5 @@ export const database = {
 export const schedulerConfig = {
     SUMMARY_ROUND: [60_000, 0],
     SUMMARY_TIME: [60_000, 30_000],
+    SUMMARY_OPERATOR: [60_000, 0],
 };

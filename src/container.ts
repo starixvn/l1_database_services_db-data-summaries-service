@@ -7,6 +7,7 @@ import { SummaryInitiator, TimeInitiator } from "./initiators/index.js";
 import { metadata } from "./metadata.js";
 import { namespaces } from "./namespaces.js";
 import { RoundTransformer, TicketTransformer } from "./transformers/index.js";
+import { OperatorSummariesTransformer } from "./transformers/operator-summaries-transfromer.js";
 
 export class Container extends BaseContainer {
     constructor() {
@@ -23,6 +24,7 @@ export class Container extends BaseContainer {
             app: asClass(App).singleton(),
             summaryInitiator: asClass(SummaryInitiator).singleton(),
             timeInitiator: asClass(TimeInitiator).singleton(),
+            operatorSummariesTransformer: asClass(OperatorSummariesTransformer).singleton(),
             roundTransformer: asClass(RoundTransformer).singleton(),
             ticketTransformer: asClass(TicketTransformer).singleton(),
             roundExtractor: asClass(RoundExtractor).singleton(),
