@@ -5,6 +5,7 @@ import type { Metadata } from "@ldb/utils";
 import type { RoundExtractor, TimeSummarizers } from "./extractors/index.js";
 import type { SummaryInitiator, TimeInitiator } from "./initiators/index.js";
 import type { RoundTransformer, TicketTransformer } from "./transformers/index.js";
+import type { OperatorSummariesTransformer } from "./transformers/operator-summaries-transfromer.js";
 import type { SchedulerKeys } from "./types/scheduler.js";
 
 export class App extends BaseApp {
@@ -12,6 +13,7 @@ export class App extends BaseApp {
         private readonly scheduler: Scheduler<SchedulerKeys>,
         private readonly summaryInitiator: SummaryInitiator,
         private readonly timeInitiator: TimeInitiator,
+        private readonly operatorSummariesTransformer: OperatorSummariesTransformer,
         private readonly roundTransformer: RoundTransformer,
         private readonly ticketTransformer: TicketTransformer,
         private readonly roundExtractor: RoundExtractor,
@@ -39,10 +41,14 @@ export class App extends BaseApp {
 
         this.timeInitiator.subscribe(this.scheduler);
 
+        this.operatorSummariesTransformer.subscribe(this.scheduler);
+
         super.initiate();
     }
 
     terminate() {
+        this.operatorSummariesTransformer.unsubscribe(this.scheduler);
+
         this.timeInitiator.unsubscribe(this.scheduler);
 
         this.timeSummarizers.dailySummarizer.unsubscribe(this.timeInitiator);

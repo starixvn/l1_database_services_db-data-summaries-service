@@ -8,4 +8,7 @@ export const namespaces = {
     dailySummariesNamespace: { db: "summary", coll: "daily_summaries" },
     hourlyStatementsNamespace: { db: "summary", coll: "hourly_statements" },
     dailyStatementsNamespace: { db: "summary", coll: "daily_statements" },
+
+    operatorRawSummariesNamespace: { db: "minigame", coll: "operator_daily_summaries" },
+    operatorDailySummariesNamespace: { db: "summary", coll: "operator_daily_summaries" },
 } as const satisfies Record<string, ChangeStreamNameSpace>;

@@ -25,8 +25,8 @@ export const lumiLoggerConfig = {
 } as const satisfies LumiLoggerConfig;
 
 const dbCred = "lmn_summary:LmnSummary" as const;
-const dbSrv = "10.10.50.12:39100,10.10.50.13:39100,10.10.50.14:39100" as const;
-const dbRepl = "L1Local" as const;
+const dbSrv = "10.10.50.12:39200,10.10.50.13:39200,10.10.50.14:39200" as const;
+const dbRepl = "L2Local" as const;
 
 export const database = {
     targetUrl: `mongodb://${dbCred}@${dbSrv}/admin?authSource=admin&appName=${encodeURIComponent(name)}&replicaSet=${dbRepl}`,
@@ -35,4 +35,5 @@ export const database = {
 export const schedulerConfig = {
     SUMMARY_ROUND: [60_000, -5_000],
     SUMMARY_TIME: [60_000, 25_000],
+    SUMMARY_OPERATOR: [60_000, 0],
 } as const satisfies SchedulerConfigs;
