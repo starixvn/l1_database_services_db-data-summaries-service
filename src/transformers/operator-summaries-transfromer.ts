@@ -4,7 +4,7 @@ import { Scheduler } from "@ldb/scheduler";
 import { Dispatcher } from "@ldb/utils";
 import { AGGREGATE_OPTIONS } from "../consts/aggregation.js";
 import { BATCH_LIMIT, BATCH_TERMINATE_THRESHOLD, DO_FLAG, DONE_FLAG } from "../consts/summary-constants.js";
-import type { OperatorRawSummarySchema, OperatorSummarySchema } from "../types/oprerator-summary-schema.js";
+import type { OperatorRawSummarySchema } from "../types/oprerator-summary-schema.js";
 import type { SchedulerEvents, SchedulerKeys } from "../types/scheduler.js";
 
 export type OperatorTransformerEvents = {
@@ -12,6 +12,9 @@ export type OperatorTransformerEvents = {
 };
 
 export class OperatorSummariesTransformer extends Dispatcher<OperatorTransformerEvents, SchedulerEvents> {
+    private flag = false;
+    private startTime = new Date();
+
     constructor(
         private readonly mongo: MongoClient,
         private readonly operatorRawSummariesNamespace: ChangeStreamNameSpace,
@@ -27,16 +30,29 @@ export class OperatorSummariesTransformer extends Dispatcher<OperatorTransformer
         return this.mongo.db(db).collection<OperatorRawSummarySchema>(coll);
     }
 
-    private get operatorDailySummariesCollection() {
-        const { db, coll } = this.operatorDailySummariesNamespace;
-        return this.mongo.db(db).collection<OperatorSummarySchema>(coll);
-    }
-
     private selfBound() {
         this.execute = this.execute.bind(this);
     }
 
     private async execute() {
+        if (this.flag) {
+            this.logger.logInfo({ title: this.className, message: `Transformer is running since ${this.startTime.toISOString()}` });
+            return;
+        }
+
+        try {
+            this.flag = true;
+            this.startTime = new Date();
+            await this.transform();
+            this.emit("OPERATOR_TRANSFORMED");
+        } catch (error) {
+            this.logger.logError({ title: this.className, message: error });
+        } finally {
+            this.flag = false;
+        }
+    }
+
+    private async transform() {
         const pipeline = this.getPipeline();
 
         let lastCount = 0;
