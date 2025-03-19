@@ -18,10 +18,6 @@ export class SummaryInitiator extends Dispatcher<SummaryInitiatorEvents, Pick<Sc
         this.selfBound();
     }
 
-    get className() {
-        return this.constructor.name;
-    }
-
     get summaryConfigsCollection() {
         const { db, coll } = this.summaryConfigsNamespace;
         return this.mongo.db(db).collection<SchemaSummaryConfig>(coll);
