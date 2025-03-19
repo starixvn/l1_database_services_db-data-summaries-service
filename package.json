@@ -21,7 +21,7 @@
   "files": [
     "lib/**"
   ],
-  "packageManager": "pnpm@9.14.1",
+  "packageManager": "pnpm@10.6.4",
   "dependencies": {
     "@ldb/base-app": "0.1.1",
     "@ldb/base-container": "0.1.1",
