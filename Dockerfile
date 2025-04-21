@@ -17,7 +17,7 @@ RUN rm lib/app-configs.*
 
 FROM base
 ARG NODE_ENV=production
-ENV NODE_ENV $NODE_ENV
+ENV NODE_ENV=$NODE_ENV
 ENV NODE_OPTIONS=""
 
 COPY --from=builder --chown=node:node /app/node_modules /app/node_modules
