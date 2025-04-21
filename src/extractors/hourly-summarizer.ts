@@ -54,7 +54,6 @@ const hourlyPipelineFactory = (sourceNamespace: ChangeStreamNameSpace, targetNam
     {
         $set: {
             playerIds: { $reduce: { input: "$playerIds", initialValue: [], in: { $setUnion: ["$$value", "$$this"] } } },
-            siteId: { $ifNull: ["$_id.siteId", { $literal: "" }] },
         },
     },
     {
