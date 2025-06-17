@@ -1,4 +1,5 @@
 /** @typedef {import("@ldb/logger").LumiLoggerConfig} LumiLoggerConfig */
+/** @typedef {import("@ldb/mongo").ChangeStreamNameSpace} ChangeStreamNameSpace */
 
 import { name, version } from "./metadata.js";
 
@@ -8,7 +9,7 @@ export const healthcheckPort = 5000;
 /** @type {LumiLoggerConfig} */
 export const lumiLoggerConfig = {
     sentryNodeOptions: {
-        dsn: "http://9326bb3634924b3baf140399926a6df3@10.2.189.50:9009/170",
+        dsn: "http://36fed42b6d2c8eab09bd46ffbd276073@sentrypro-sc.nebula.prod/21",
         environment,
         initialScope: {
             tags: { service: name },
@@ -18,7 +19,7 @@ export const lumiLoggerConfig = {
     skynexOptions: {
         conversationIds: {
             telegram: -1002096556100,
-            teams: "19:1757113a88734d85be13ad84f3dcbc66@thread.tacv2",
+            slack: "B08GPPK88MS:T08ACMHMMFS:C090VPU8KFF",
         },
         proxy: {
             protocol: "http",
@@ -29,16 +30,30 @@ export const lumiLoggerConfig = {
     environment,
 };
 
-const dbCred = "lmn_summary:%25%7a%3b%26%30%4f%4f%22%4e%41%58%4d%55%21%38%51%6e%45%26%55%39%34%7e%23%62%62%3f%58%42%60%37%61";
-const dbSrv = "10.99.99.53:39410,10.99.99.54:39410,10.99.99.188:39410,10.99.99.187:39410";
-const dbRepl = "SN-Main";
+const mongoCred = "lmn_summary:%25%7a%3b%26%30%4f%4f%22%4e%41%58%4d%55%21%38%51%6e%45%26%55%39%34%7e%23%62%62%3f%58%42%60%37%61";
+const mongoSrv = "10.99.99.53:39410,10.99.99.54:39410,10.99.99.188:39410,10.99.99.187:39410";
+const mongoRepl = "SN-Main";
 
 export const database = {
-    targetUrl: `mongodb://${dbCred}@${dbSrv}/admin?authSource=admin&appName=${encodeURIComponent(name)}&replicaSet=${dbRepl}`,
+    mongoURI: `mongodb://${mongoCred}@${mongoSrv}/admin?authSource=admin&appName=${encodeURIComponent(name)}&replicaSet=${mongoRepl}`,
 };
 
 export const schedulerConfig = {
     SUMMARY_ROUND: [60_000, 0],
     SUMMARY_TIME: [60_000, 30_000],
     SUMMARY_OPERATOR: [60_000, 0],
+};
+
+/** @type {Record<string, ChangeStreamNameSpace>} */
+export const namespaces = {
+    summaryConfigsNamespace: { db: "ops_configs", coll: "summary_configs" },
+    ticketSummariesNamespace: { db: "minigame", coll: "ticket_silos" },
+    roundSummariesNamespace: { db: "summary", coll: "round_summaries" },
+    hourlySummariesNamespace: { db: "summary", coll: "hourly_summaries" },
+    dailySummariesNamespace: { db: "summary", coll: "daily_summaries" },
+    hourlyStatementsNamespace: { db: "summary", coll: "hourly_statements" },
+    dailyStatementsNamespace: { db: "summary", coll: "daily_statements" },
+
+    operatorRawSummariesNamespace: { db: "minigame", coll: "operator_daily_summaries" },
+    operatorDailySummariesNamespace: { db: "summary", coll: "operator_daily_summaries" },
 };
