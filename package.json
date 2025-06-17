@@ -26,7 +26,7 @@
     "@ldb/base-app": "0.1.2",
     "@ldb/base-container": "0.1.1",
     "@ldb/mongo": "6.10.4",
-    "@ldb/utils": "0.3.6-rc.1"
+    "@ldb/utils": "0.3.5"
   },
   "devDependencies": {
     "@commitlint/cli": "19.8.0",
@@ -40,7 +40,7 @@
     "@types/node": "22.13.10",
     "@vitest/coverage-v8": "3.0.9",
     "eslint": "9.22.0",
-    "prettier": "3.5.3",
+    "prettier": "3.3.3",
     "rimraf": "6.0.1",
     "typescript": "5.8.2",
     "vitest": "3.0.9"
