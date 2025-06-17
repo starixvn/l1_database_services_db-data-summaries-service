@@ -73,9 +73,9 @@ export class OperatorSummariesTransformer extends Dispatcher<OperatorTransformer
                     time: { $dateFromString: { dateString: "$targetDate", format: "%Y/%m/%d", timezone: "+00" } },
                     siteId: "$siteId",
                     currency: "$currencyIso",
-                    stake: { $toDouble: "$actualStake" },
+                    stake: { $toDecimal: { $round: [{ $toDouble: "$actualStake" }, 4] } },
                     tickets: { $toInt: "$betCount" },
-                    winloss: { $toDouble: "$winLose" },
+                    winloss: { $toDecimal: { $round: [{ $toDouble: "$winLose" }, 4] } },
                 },
             },
             {
