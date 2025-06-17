@@ -1,11 +1,10 @@
 import { asClass, asValue, BaseContainer } from "@ldb/base-container";
 import type { MongoClient } from "@ldb/mongo";
-import { healthcheckPort, lumiLoggerConfig, schedulerConfig } from "./app-configs.js";
+import { healthcheckPort, lumiLoggerConfig, namespaces, schedulerConfig } from "./app-configs.js";
 import { App } from "./app.js";
 import { DailyStatement, DailySummarizer, HourlyStatement, HourlySummarizer, RoundExtractor, TimeSummarizers } from "./extractors/index.js";
 import { SummaryInitiator, TimeInitiator } from "./initiators/index.js";
 import { metadata } from "./metadata.js";
-import { namespaces } from "./namespaces.js";
 import { RoundTransformer, TicketTransformer } from "./transformers/index.js";
 import { OperatorSummariesTransformer } from "./transformers/operator-summaries-transfromer.js";
 
