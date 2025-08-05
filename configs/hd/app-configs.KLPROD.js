@@ -3,7 +3,7 @@
 
 import { name, version } from "./metadata.js";
 
-export const environment = "HD-KLPROD";
+export const environment = "HD-KL-PROD";
 export const healthcheckPort = 5000;
 
 /** @type {LumiLoggerConfig} */
@@ -46,7 +46,7 @@ export const schedulerConfig = {
 
 /** @type {Record<string, ChangeStreamNameSpace>} */
 export const namespaces = {
-    summaryConfigsNamespace: { db: "ops_configs", coll: "hotdog_summary_configs" },
+    summaryConfigsNamespace: { db: "hotdog_ops_configs", coll: "summary_configs" },
     ticketSummariesNamespace: { db: "hotdog_minigame", coll: "ticket_silos" },
     roundSummariesNamespace: { db: "hotdog_summary", coll: "round_summaries" },
     hourlySummariesNamespace: { db: "hotdog_summary", coll: "hourly_summaries" },

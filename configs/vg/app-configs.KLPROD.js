@@ -3,7 +3,7 @@
 
 import { name, version } from "./metadata.js";
 
-export const environment = "VG-KLPROD";
+export const environment = "VG-KL-PROD";
 export const healthcheckPort = 5000;
 
 /** @type {LumiLoggerConfig} */

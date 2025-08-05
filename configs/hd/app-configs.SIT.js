@@ -3,13 +3,13 @@
 
 import { name, version } from "./metadata.js";
 
-export const environment = "HD-SIT";
+export const environment = "HD-MIS-SIT";
 export const healthcheckPort = 5000;
 
 /** @type {LumiLoggerConfig} */
 export const lumiLoggerConfig = {
     sentryNodeOptions: {
-        dsn: "http://02812c393657019df80dbfd647c7e444@sentryuat-sc.nebula.prod/24",
+        dsn: "https://9e03285f9c3ff7b4b44903dd009f49dd@sentry-kl.sgamesuat.com/22",
         environment,
         initialScope: {
             tags: { service: name },
@@ -21,17 +21,12 @@ export const lumiLoggerConfig = {
             telegram: -1002034115006,
             slack: "B08GPPK88MS:T08ACMHMMFS:C090ALHP2DD",
         },
-        proxy: {
-            protocol: "http",
-            host: "lisasqd.nebula.prod",
-            port: 8801,
-        },
     },
     environment,
 };
 
 const mongoCred = "lmn_summary:%4c%6d%6e%53%75%6d%6d%61%72%79%40%35%31%37";
-const mongoSrv = "10.99.99.53:39530,10.99.99.54:39530,10.99.99.188:39530,10.99.99.187:39530";
+const mongoSrv = "172.16.4.111:35301";
 const mongoRepl = "SP-SIT";
 
 export const database = {
@@ -46,7 +41,7 @@ export const schedulerConfig = {
 
 /** @type {Record<string, ChangeStreamNameSpace>} */
 export const namespaces = {
-    summaryConfigsNamespace: { db: "ops_configs", coll: "hotdog_summary_configs" },
+    summaryConfigsNamespace: { db: "hotdog_ops_configs", coll: "summary_configs" },
     ticketSummariesNamespace: { db: "hotdog_minigame", coll: "ticket_silos" },
     roundSummariesNamespace: { db: "hotdog_summary", coll: "round_summaries" },
     hourlySummariesNamespace: { db: "hotdog_summary", coll: "hourly_summaries" },

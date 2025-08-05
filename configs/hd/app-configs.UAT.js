@@ -3,13 +3,13 @@
 
 import { name, version } from "./metadata.js";
 
-export const environment = "HD-UAT";
+export const environment = "HD-KL-UAT";
 export const healthcheckPort = 5000;
 
 /** @type {LumiLoggerConfig} */
 export const lumiLoggerConfig = {
     sentryNodeOptions: {
-        dsn: "http://02812c393657019df80dbfd647c7e444@sentryuat-sc.nebula.prod/24",
+        dsn: "http://9e03285f9c3ff7b4b44903dd009f49dd@sentrysc.ops-kluat.gamora.prod/22",
         environment,
         initialScope: {
             tags: { service: name },
@@ -23,7 +23,7 @@ export const lumiLoggerConfig = {
         },
         proxy: {
             protocol: "http",
-            host: "lisasqd.nebula.prod",
+            host: "iusqd.gamora.prod",
             port: 8801,
         },
     },
@@ -31,7 +31,7 @@ export const lumiLoggerConfig = {
 };
 
 const mongoCred = "lmn_summary:%4c%6d%6e%53%75%6d%6d%61%72%79%40%32%32%30%32%37";
-const mongoSrv = "10.99.99.53:39520,10.99.99.54:39520,10.99.99.188:39520,10.99.99.187:39520";
+const mongoSrv = "10.146.34.28:39520";
 const mongoRepl = "SP-UAT";
 
 export const database = {
@@ -46,7 +46,7 @@ export const schedulerConfig = {
 
 /** @type {Record<string, ChangeStreamNameSpace>} */
 export const namespaces = {
-    summaryConfigsNamespace: { db: "ops_configs", coll: "hotdog_summary_configs" },
+    summaryConfigsNamespace: { db: "hotdog_ops_configs", coll: "summary_configs" },
     ticketSummariesNamespace: { db: "hotdog_minigame", coll: "ticket_silos" },
     roundSummariesNamespace: { db: "hotdog_summary", coll: "round_summaries" },
     hourlySummariesNamespace: { db: "hotdog_summary", coll: "hourly_summaries" },
