@@ -9,7 +9,7 @@ export const healthcheckPort = 5000;
 /** @type {LumiLoggerConfig} */
 export const lumiLoggerConfig = {
     sentryNodeOptions: {
-        dsn: "https://a44301722794b9e2d74cb4efc1655964@sentry-kl.sgamesuat.com/19",
+        dsn: "http://a44301722794b9e2d74cb4efc1655964@sentrysc.ops-sit.nebula.sit/19",
         environment,
         initialScope: {
             tags: { service: name },
