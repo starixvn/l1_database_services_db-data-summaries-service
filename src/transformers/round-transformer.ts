@@ -88,6 +88,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                 payout,
                 refund,
                 playerId: { $toString: `$${playerId}` },
+                uid: { $toObjectId: "$uid" },
                 currencyGroupId: 1,
                 siteName: 1,
                 isTest: 1,
