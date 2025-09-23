@@ -2,7 +2,7 @@ import type { BaseLogger } from "@ldb/logger";
 import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MongoClient } from "@ldb/mongo";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import type { RoundSummaryConfig } from "../types/summary-config.js";
-import { BaseTransformer, LOOKUP_CURRENCY, LOOKUP_EXCHANGE, LOOKUP_SESSION, LOOKUP_USER } from "./base-transformer.js";
+import { BaseTransformer, LOOKUP_CURRENCY, LOOKUP_EXCHANGE, LOOKUP_SESSION, LOOKUP_USER, SESSION_TIMEOUT_MINUTES } from "./base-transformer.js";
 
 const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
     const { gameConfigs, aliases, calc } = summaryConfig;
@@ -82,7 +82,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
                             $expr: {
                                 $and: [
                                     { $gte: ["$$time", "$ssoTime"] }, // -
-                                    { $lte: ["$$time", { $dateAdd: { startDate: "$recheckInTime", unit: "minute", amount: 1 } }] },
+                                    { $lte: ["$$time", { $dateAdd: { startDate: "$recheckInTime", unit: "minute", amount: SESSION_TIMEOUT_MINUTES } }] },
                                 ],
                             },
                         },
