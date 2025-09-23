@@ -2,7 +2,7 @@ import type { BaseLogger } from "@ldb/logger";
 import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MongoClient } from "@ldb/mongo";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import type { BetSummaryConfig } from "../types/summary-config.js";
-import { BaseTransformer, LOOKUP_CURRENCY, LOOKUP_EXCHANGE, LOOKUP_ROUND, LOOKUP_USER } from "./base-transformer.js";
+import { BaseTransformer, LOOKUP_CURRENCY, LOOKUP_EXCHANGE, LOOKUP_ROUND, LOOKUP_SESSION, LOOKUP_USER } from "./base-transformer.js";
 
 const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
     const { gameConfigs, coll, aliases, calc } = summaryConfig;
@@ -112,6 +112,33 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
         { $set: { __USD: `$${LOOKUP_EXCHANGE}.USD`, __VND: `$${LOOKUP_EXCHANGE}.VND`, [LOOKUP_EXCHANGE]: "$$REMOVE" } },
 
         {
+            $lookup: {
+                from: "usersessions",
+                localField: "uid",
+                foreignField: "userId",
+                let: { time: `$${time}` },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $gte: ["$$time", "$ssoTime"] }, // -
+                                    { $lte: ["$$time", { $dateAdd: { startDate: "$recheckInTime", unit: "minute", amount: 1 } }] },
+                                ],
+                            },
+                        },
+                    },
+                    { $sort: { ssoTime: -1 } },
+                    { $project: { _id: 0, sessionId: 1 } },
+                    { $limit: 1 },
+                ],
+                as: LOOKUP_SESSION,
+            },
+        },
+        { $unwind: { path: `$${LOOKUP_SESSION}`, preserveNullAndEmptyArrays: true } },
+        { $set: { sessionId: `$${LOOKUP_SESSION}.sessionId`, [LOOKUP_SESSION]: "$$REMOVE" } },
+
+        {
             $project: {
                 _id: 1,
                 _roundId: 1,
@@ -134,6 +161,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
                 currencyGroupId: 1,
                 siteName: 1,
                 isTest: 1,
+                sessionId: 1,
                 "USD.stake": { $toDecimal: { $round: [{ $multiply: ["$stake", "$__multiplier", "$__USD"] }, 4] } },
                 "USD.payout": { $toDecimal: { $round: [{ $multiply: ["$payout", "$__multiplier", "$__USD"] }, 4] } },
                 "USD.refund": { $toDecimal: { $round: [{ $multiply: ["$refund", "$__multiplier", "$__USD"] }, 4] } },
