@@ -2,7 +2,7 @@ import type { BaseLogger } from "@ldb/logger";
 import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MongoClient } from "@ldb/mongo";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import type { RoundSummaryConfig } from "../types/summary-config.js";
-import { BaseTransformer, LOOKUP_CURRENCY, LOOKUP_EXCHANGE, LOOKUP_SESSION, LOOKUP_USER, SESSION_TIMEOUT_MINUTES } from "./base-transformer.js";
+import { BaseTransformer, LOOKUP_CURRENCY, LOOKUP_EXCHANGE, LOOKUP_SESSION, LOOKUP_USER, SESSION_TIMEOUT_MINUTES, TICKET_WARMING_MINUTES } from "./base-transformer.js";
 
 const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
     const { gameConfigs, aliases, calc } = summaryConfig;
@@ -11,6 +11,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
     const { roundId, tickets, stake, payout, refund } = calc;
 
     const pipeline: CollectionAggregationPipeline = [
+        { $match: { [time]: { $lt: new Date(Date.now() - TICKET_WARMING_MINUTES * 60_000) } } },
         {
             $lookup: {
                 from: "user_silos",
@@ -52,7 +53,7 @@ const pipelineFactory = (summaryConfig: RoundSummaryConfig) => {
             },
         },
 
-        { $set: { __date: { $dateFromParts: { year: { $year: `$${time}` }, month: { $month: `$${time}` }, day: { $dayOfMonth: `$${time}` } } } } },
+        { $set: { __date: { $dateTrunc: { date: `$${time}`, unit: "day" } } } },
         {
             $lookup: {
                 from: "exchange_silos",

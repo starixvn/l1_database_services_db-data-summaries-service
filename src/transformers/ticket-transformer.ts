@@ -2,7 +2,16 @@ import type { BaseLogger } from "@ldb/logger";
 import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MongoClient } from "@ldb/mongo";
 import type { SummaryInitiator } from "../initiators/summary-initiator.js";
 import type { BetSummaryConfig } from "../types/summary-config.js";
-import { BaseTransformer, LOOKUP_CURRENCY, LOOKUP_EXCHANGE, LOOKUP_ROUND, LOOKUP_SESSION, LOOKUP_USER, SESSION_TIMEOUT_MINUTES } from "./base-transformer.js";
+import {
+    BaseTransformer,
+    LOOKUP_CURRENCY,
+    LOOKUP_EXCHANGE,
+    LOOKUP_ROUND,
+    LOOKUP_SESSION,
+    LOOKUP_USER,
+    SESSION_TIMEOUT_MINUTES,
+    TICKET_WARMING_MINUTES,
+} from "./base-transformer.js";
 
 const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
     const { gameConfigs, coll, aliases, calc } = summaryConfig;
@@ -31,6 +40,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
     }
 
     return [
+        { $match: { time: { $lt: new Date(Date.now() - TICKET_WARMING_MINUTES * 60_000) } } },
         {
             $project: {
                 _id: 1,
@@ -93,7 +103,7 @@ const pipelineFactory = (summaryConfig: BetSummaryConfig) => {
             },
         },
 
-        { $set: { __date: { $dateFromParts: { year: { $year: "$roundTime" }, month: { $month: "$roundTime" }, day: { $dayOfMonth: "$roundTime" } } } } },
+        { $set: { __date: { $dateTrunc: { date: "$roundTime", unit: "day" } } } },
         {
             $lookup: {
                 from: "exchange_silos",

@@ -14,6 +14,7 @@ export const LOOKUP_CURRENCY = "__currency" as const;
 export const LOOKUP_EXCHANGE = "__exchange" as const;
 export const LOOKUP_SESSION = "__session" as const;
 export const SESSION_TIMEOUT_MINUTES = 2 as const satisfies number;
+export const TICKET_WARMING_MINUTES = 3 as const satisfies number;
 
 export const getFlag = (summaryConfig: SummaryConfig) => {
     const { gameConfigs } = summaryConfig;
